@@ -1,0 +1,13 @@
+{
+  "name": "dsh-agent-loop-guard",
+  "version": "0.1.0",
+  "description": "Fail-closed runtime tool-call loop guard for DeepSeek Harness.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": { ".": "./lib/index.js", "./package.json": "./package.json", "./cordis.patch.yml": "./cordis.patch.yml" },
+  "files": ["lib", "cordis.patch.yml", "README.md", "LICENSE"],
+  "scripts": { "test": "node --test", "check": "node --check lib/index.js && node --check lib/guard-state.js" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "license": "MIT",
+  "peerDependencies": { "@deepseek-ai/cordis": "^4.0.1", "@deepseek-ai/schemastery": "^3.18.1" }
+}
