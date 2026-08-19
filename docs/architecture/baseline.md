@@ -1,6 +1,6 @@
 # Architecture baseline
 
-The plugin owns in-memory guard state only. Agent pre-step records turn and stop mode. The documented DSH tools.guard hook synchronously evaluates each tool attempt and returns either allow or a denial reason.
+The plugin owns in-memory guard state only. Agent pre-step records turn and stop mode. The documented DSH tools.guard hook synchronously evaluates each tool attempt and returns either allow or a denial reason. Repeat protection is keyed by the tool plus a normalized argument group (whitespace-only formatting differences are grouped), not by tool name alone; this lets a workflow reuse `bash` or `curl` for distinct operations.
 
 user message -> pre-step records turn -> model tool call -> tools.guard -> normalized DSH tool result -> model text response
 

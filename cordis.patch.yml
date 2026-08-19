@@ -4,5 +4,5 @@
       name: dsh-agent-loop-guard
       config:
         maxToolAttemptsPerTurn: 8
-        maxCallsPerToolPerTurn: 3
+        maxCallsPerRepeatGroup: 3
         blockExactDuplicates: true
