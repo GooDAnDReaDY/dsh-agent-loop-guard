@@ -7,7 +7,7 @@
 - OPT: undefined; deployment needs explicit user approval.
 - Purpose: host-only DeepSeek Harness plugin that bounds tool-call loops.
 - Current status: active development.
-- Status verified: 2026-08-19 through Gitea and installed DSH lifecycle inspection.
+- Status verified: 2026-08-20 through Gitea and installed DSH lifecycle inspection.
 
 ## Constraints
 
@@ -22,10 +22,20 @@
   - Reason: pre-step rejection ends a turn without a model text response.
   - Revisit only if documented DSH adds a response-preserving final-turn API.
 - 2026-08-19: repeat protection is keyed by normalized call arguments, not tool name.
-  - Reason: a single workflow legitimately reuses `bash`/`curl` for different
-    issue, label, PR and comment operations; tool-name-only caps block progress.
-  - Exact duplicates, formatting-equivalent repeats and the total turn cap remain
-    protected.
+  - Reason: a single workflow legitimately reuses bash/curl for different issue,
+    label, PR and comment operations; tool-name-only caps block progress.
+- 2026-08-20: allow five consecutive exact or normalized-equivalent calls.
+  - Reason: ordinary development workflows legitimately retry a read/edit/test
+    operation several times; the sixth consecutive repeat is the loop boundary.
+- 2026-08-20: account calls at DSH tools/execute, not inside tools.guard.
+  - Reason: tools.guard runs before later guard layers. A later denial must not
+    poison the repeat/duplicate state; tools/result releases reservations for
+    those denials.
+- 2026-08-20: ordinary aggregate cap defaults to 64; value 0 disables only that
+  cap.
+  - Reason: the aggregate cap must not replace repeat protection or block normal
+    read/edit/test/commit/push workflows. Stop, repeat, duplicate, and progress
+    protections remain active.
 
 ## Testing
 
@@ -35,5 +45,6 @@
 - 2026-08-20: progress/state tools use a separate finite per-turn budget.
   - Reason: todo_write is a mandatory session-state update and must remain
     available after ordinary tool work reaches its safety cap.
-  - Exact duplicates and normalized repeats still apply; the separate budget is
-    not an unlimited bypass.
+  - Exact and normalized repeats still apply after five consecutive calls; the
+    separate budget is not an unlimited bypass.
+
