@@ -132,14 +132,14 @@ test('loop denial logs structured progress context and subsequent calls stay sto
   const events = [];
   const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 1, onViolation: (event) => events.push(event) });
   state.beginTurn('agent-10', 1, false);
-  assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-1'), undefined);
+  assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-1'), undefined);
   state.commitCall('agent-10', 'read-1');
   state.recordResult('agent-10', { callId: 'read-1', result: { value: 'same' } });
-  assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-2'), undefined);
+  assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-2'), undefined);
   state.commitCall('agent-10', 'read-2');
   state.recordResult('agent-10', { callId: 'read-2', result: { value: 'same' } });
-  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-3'), /DUPLICATE/);
-  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-4'), /LOOP_GUARD_STOP/);
+  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-3'), /DUPLICATE/);
+  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-4'), /LOOP_GUARD_STOP/);
   assert.equal(events.length, 2);
   assert.equal(events[0].code, 'LOOP_GUARD_DUPLICATE');
   assert.equal(events[0].arguments.token, '[redacted]');
