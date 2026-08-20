@@ -65,3 +65,15 @@
   the next user message.
   - Reason: preserving the pending inbox allowed a cancelled loop to re-enter
     and repeat; clearing it is required to stop the generation at the boundary.
+
+- 2026-08-20: tool-loop detection is progress-aware, not repetition-only.
+  - A successful result or explicit progress token that differs from the last
+    successful evidence advances the progress epoch and resets contextual
+    budgets/repeat groups. Unknown or failed results do not.
+- 2026-08-20: denial enters answer-only mode for the current turn and the next
+  turn resets it.
+  - Reason: a blocked tool must produce a legal text-response exit instead of
+    repeatedly retrying the same call.
+- 2026-08-20: every guard denial is emitted as a redacted structured log event.
+  - Reason: live tuning requires call identity, denial code, counters, and the
+    last progress evidence without leaking Gitea tokens or other secrets.

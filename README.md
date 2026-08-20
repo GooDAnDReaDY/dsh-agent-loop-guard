@@ -1,46 +1,38 @@
-# dsh-agent-loop-guard
+# dsh-agent-loop-guard 0.2.0
 
 Host-only DeepSeek Harness bundle that prevents tool-call loops without changing DSH core.
 
 ## Behaviour
 
-- permits five identical consecutive calls; the sixth exact repeat is blocked;
-- permits five formatting-equivalent consecutive calls; the sixth near-repeat is blocked;
-- counts a call only after it passes all DSH guard layers, so a call rejected by
-  another guard can be retried after its prerequisite is satisfied;
-- caps ordinary tool attempts in a turn; default is 64, and 0 disables only this
-  aggregate cap while repeat, stop, and progress protections remain active;
-- progress/state tools (by default todo_write) do not consume the ordinary loop
-  budget, but have their own bounded per-turn budget; default is 16;
-- does not cap a tool merely because its name is reused: different Gitea API
-  operations in separate commands remain allowed;
-- when the user says stop, halt, answer, or петля, blocks tools for that turn and tells the model to answer in text.
+- treats a repeated call as a loop only when no successful result or state
+  change has appeared since the previous attempt;
+- permits legitimate iterations with the same arguments when the result or
+  explicit progress token changes;
+- allows read -> edit -> read -> edit when each step produces new evidence;
+- keeps Gitea/curl operations distinct by their complete operation arguments,
+  including HTTP method and endpoint, even when they share a base URL;
+- uses maxToolAttemptsPerTurn and maxProgressToolCallsPerTurn as budgets
+  since the last productive action, so productive work resets the counters;
+- after a loop or budget denial, enters answer-only mode for the current turn
+  and returns a normal DSH tool denial that requires a text answer; the next
+  turn resets that mode;
+- logs every LOOP_GUARD_STOP, LOOP_GUARD_LIMIT,
+  LOOP_GUARD_PROGRESS_LIMIT, LOOP_GUARD_DUPLICATE, and
+  LOOP_GUARD_REPEAT event with a redacted call summary and progress context;
+- preserves the assistant-output guard: it detects text-only loops across
+  block/step/turn boundaries and cancels with keepInbox: false.
 
-`maxCallsPerRepeatGroup` controls the consecutive normalized repeat-group cap.
-The legacy `maxCallsPerToolPerTurn` setting is still accepted as a compatibility
-alias, but it is no longer applied to every call of the same tool.
-`maxToolAttemptsPerTurn` accepts 0 to disable only the aggregate ordinary-call
-cap. `progressToolNames` configures state/progress tools, and
-`maxProgressToolCallsPerTurn` bounds them separately. Exact and near-identical
-repeat protection still applies to progress tools.
+The repeat threshold remains controlled by maxCallsPerRepeatGroup (default 5),
+but it is evaluated against the current progress epoch rather than raw call
+count. A successful result is considered productive when its result fingerprint
+or explicit progress token differs from the last successful evidence. Failed or
+unknown results do not reset the guard.
 
-Call accounting is connected to DSH's public `tools/execute` and
-`tools/result` stages: reservations made while the guard chain is evaluated
-are released when a later guard denies the call, and committed only once the
-call reaches the around-dispatch stage.
-
-Denials use the documented tools.guard API. DSH materializes them as normal structured tool results, preserving session persistence.
-
-The optional assistant-output guard is enabled by default. It subscribes to the
-documented session event stream and watches complete non-empty text lines from
-assistant/chunk text-delta events, with assistant/message as a lossless final-message
-fallback. Five consecutive normalized copies of the same line (configurable with
-maxRepeatedAssistantLines) are detected across block, step, and turn boundaries.
-The guard latches for the rest of the session, cancels the active agent with
-keepInbox: false so queued work cannot re-enter the same loop, and resets only
-when a new user message arrives or the session is disposed. Active tool calls
-pause and reset the text streak. This is specifically for a stuck streaming or
-message-output loop; it does not replace tool repeat protection.
+The legacy maxCallsPerToolPerTurn setting remains accepted as a compatibility
+alias. maxToolAttemptsPerTurn: 0 disables only the aggregate no-progress
+budget; repeat, stop, progress, and assistant-output protections remain active.
+Denials use the documented tools.guard API and remain normal structured DSH tool
+results, preserving session persistence.
 
 ## Verification
 

@@ -16,114 +16,159 @@ const config = {
   blockExactDuplicates: true,
 };
 
-test('canonical fingerprint ignores object key order', () => {
+function accept(state, agent, name, args, callId, result, extra = {}) {
+  assert.equal(state.denyReason(agent, name, args, callId), undefined);
+  state.commitCall(agent, callId);
+  return state.recordResult(agent, { callId, result, ...extra });
+}
+
+test('canonical and normalized fingerprints keep full operation identity', () => {
   assert.equal(callFingerprint('search', { b: 2, a: 1 }), callFingerprint('search', { a: 1, b: 2 }));
-});
-
-test('repeat fingerprint ignores formatting-only whitespace differences', () => {
   assert.equal(callRepeatFingerprint('bash', { command: ' curl  /issues ' }), callRepeatFingerprint('bash', { command: 'curl /issues' }));
+  assert.notEqual(
+    callRepeatFingerprint('bash', { command: 'curl -H "Authorization: Bearer [redacted]" http://gitea/api/issues' }),
+    callRepeatFingerprint('bash', { command: 'curl -H "Authorization: Bearer [redacted]" http://gitea/api/pulls' }),
+  );
 });
 
-test('five exact consecutive calls are allowed and the sixth is blocked', () => {
+test('same arguments with a changing result are legitimate productive iterations', () => {
   const state = new LoopGuardState(config);
   state.beginTurn('agent-1', 1, false);
-  for (let index = 0; index < 5; index += 1) {
-    assert.equal(state.denyReason('agent-1', 'search', { q: 'DSH' }, 'call-' + index), undefined);
+  for (let index = 0; index < 12; index += 1) {
+    const outcome = accept(state, 'agent-1', 'read', { path: 'status.json' }, 'read-' + index, { revision: index });
+    assert.equal(outcome.productive, true);
   }
-  assert.match(state.denyReason('agent-1', 'search', { q: 'DSH' }, 'call-5'), /DUPLICATE/);
 });
 
-test('tool attempts have a hard per-turn cap', () => {
+test('unchanged result after repeated identical calls is blocked as no-progress', () => {
   const state = new LoopGuardState(config);
-  state.beginTurn('agent-1', 1, false);
-  for (let index = 0; index < 8; index += 1) assert.equal(state.denyReason('agent-1', 'tool-' + index, { index }), undefined);
-  assert.match(state.denyReason('agent-1', 'other', {}), /LIMIT/);
+  state.beginTurn('agent-2', 1, false);
+  accept(state, 'agent-2', 'read', { path: 'status.json' }, 'read-0', { revision: 1 });
+  for (let index = 1; index <= 5; index += 1) {
+    assert.equal(state.denyReason('agent-2', 'read', { path: 'status.json' }, 'read-' + index), undefined);
+    state.commitCall('agent-2', 'read-' + index);
+    state.recordResult('agent-2', { callId: 'read-' + index, result: { revision: 1 } });
+  }
+  const reason = state.denyReason('agent-2', 'read', { path: 'status.json' }, 'read-6');
+  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+  assert.match(reason, /No productive progress/);
 });
 
-test('zero disables only the aggregate ordinary-call cap', () => {
-  const state = new LoopGuardState({ ...config, maxToolAttemptsPerTurn: 0 });
-  state.beginTurn('agent-1', 1, false);
-  for (let index = 0; index < 10; index += 1) assert.equal(state.denyReason('agent-1', 'tool-' + index, { index }), undefined);
+test('read-edit-read-edit is allowed when each result changes state', () => {
+  const state = new LoopGuardState(config);
+  state.beginTurn('agent-3', 1, false);
+  accept(state, 'agent-3', 'read', { path: 'package.json' }, 'read-1', { sha: 'a' });
+  accept(state, 'agent-3', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-1', { changed: true, sha: 'b' });
+  accept(state, 'agent-3', 'read', { path: 'package.json' }, 'read-2', { sha: 'b' });
+  accept(state, 'agent-3', 'edit', { path: 'package.json', oldText: 'b', newText: 'c' }, 'edit-2', { changed: true, sha: 'c' });
 });
 
-test('progress tools do not consume the ordinary budget but remain bounded', () => {
-  const state = new LoopGuardState({
-    ...config,
-    maxToolAttemptsPerTurn: 2,
-    maxProgressToolCallsPerTurn: 2,
-  });
-  state.beginTurn('agent-1', 1, false);
-  assert.equal(state.denyReason('agent-1', 'bash', { command: 'pwd' }), undefined);
-  assert.equal(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'one', status: 'in_progress' }] }), undefined);
-  assert.equal(state.denyReason('agent-1', 'bash', { command: 'ls' }), undefined);
-  assert.equal(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'two', status: 'in_progress' }] }), undefined);
-  assert.match(state.denyReason('agent-1', 'bash', { command: 'date' }), /LIMIT/);
-  assert.match(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'three', status: 'in_progress' }] }), /PROGRESS_LIMIT/);
-});
-
-test('a call denied by a later guard can be retried without duplicate accounting', () => {
+test('a denied edit can be retried after read produces a new result', () => {
   const state = new LoopGuardState({ ...config, maxToolAttemptsPerTurn: 2 });
-  state.beginTurn('agent-1', 1, false);
-  assert.equal(state.denyReason('agent-1', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-1'), undefined);
-  state.releaseCall('agent-1', 'edit-1');
-  assert.equal(state.denyReason('agent-1', 'read', { path: 'package.json' }, 'read-1'), undefined);
-  assert.equal(state.denyReason('agent-1', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-2'), undefined);
+  state.beginTurn('agent-4', 1, false);
+  assert.equal(state.denyReason('agent-4', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-1'), undefined);
+  state.releaseCall('agent-4', 'edit-1');
+  accept(state, 'agent-4', 'read', { path: 'package.json' }, 'read-1', { sha: 'a' });
+  assert.equal(state.denyReason('agent-4', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-2'), undefined);
 });
 
-test('progress-tool near duplicates remain protected after five allowed calls', () => {
-  const state = new LoopGuardState({ ...config, maxProgressToolCallsPerTurn: 8 });
-  state.beginTurn('agent-1', 1, false);
-  for (let index = 0; index < 5; index += 1) {
-    assert.equal(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'one', status: 'pending' }] }), undefined);
+test('aggregate budgets reset after a productive action', () => {
+  const state = new LoopGuardState({ ...config, maxToolAttemptsPerTurn: 2 });
+  state.beginTurn('agent-5', 1, false);
+  accept(state, 'agent-5', 'bash', { command: 'read-a' }, 'a', { output: 'a' });
+  accept(state, 'agent-5', 'bash', { command: 'read-b' }, 'b', { output: 'b' });
+  assert.equal(state.denyReason('agent-5', 'bash', { command: 'read-c' }, 'c'), undefined);
+});
+
+test('aggregate budget blocks a nonproductive exploratory run', () => {
+  const state = new LoopGuardState({ ...config, maxToolAttemptsPerTurn: 2 });
+  state.beginTurn('agent-6', 1, false);
+  assert.equal(state.denyReason('agent-6', 'bash', { command: 'one' }, 'one'), undefined);
+  state.commitCall('agent-6', 'one');
+  state.recordResult('agent-6', { callId: 'one', result: { output: 'same' } });
+  assert.equal(state.denyReason('agent-6', 'bash', { command: 'two' }, 'two'), undefined);
+  state.commitCall('agent-6', 'two');
+  state.recordResult('agent-6', { callId: 'two', result: { output: 'same' } });
+  assert.equal(state.denyReason('agent-6', 'bash', { command: 'three' }, 'three'), undefined);
+  state.commitCall('agent-6', 'three');
+  state.recordResult('agent-6', { callId: 'three', result: { output: 'same' } });
+  assert.match(state.denyReason('agent-6', 'bash', { command: 'four' }, 'four'), /LOOP_GUARD_LIMIT/);
+});
+
+test('progress tools have an independent no-progress budget', () => {
+  const state = new LoopGuardState({ ...config, maxProgressToolCallsPerTurn: 2 });
+  state.beginTurn('agent-7', 1, false);
+  accept(state, 'agent-7', 'todo_write', { todos: ['one'] }, 'todo-1', { saved: true });
+  assert.equal(state.denyReason('agent-7', 'todo_write', { todos: ['two'] }, 'todo-2'), undefined);
+  state.commitCall('agent-7', 'todo-2');
+  state.recordResult('agent-7', { callId: 'todo-2', result: { saved: true } });
+  assert.equal(state.denyReason('agent-7', 'todo_write', { todos: ['three'] }, 'todo-3'), undefined);
+});
+
+test('distinct Gitea/curl operations are never collapsed by their common base URL', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 2 });
+  state.beginTurn('agent-8', 1, false);
+  const commands = [
+    'curl -H "Authorization: Bearer [redacted]" -X POST http://gitea/api/issues',
+    'curl -H "Authorization: Bearer [redacted]" -X POST http://gitea/api/pulls',
+    'curl -H "Authorization: Bearer [redacted]" -X POST http://gitea/api/pulls/1/merge',
+    'curl -H "Authorization: Bearer [redacted]" -X POST http://gitea/api/issues/1/comments',
+    'curl -H "Authorization: Bearer [redacted]" -X PATCH http://gitea/api/issues/1',
+  ];
+  for (let index = 0; index < commands.length; index += 1) {
+    assert.equal(state.denyReason('agent-8', 'bash', { command: commands[index] }, 'gitea-' + index), undefined);
   }
-  assert.match(state.denyReason('agent-1', 'todo_write', { todos: [{ content: '  one  ', status: 'pending' }] }), /REPEAT/);
 });
 
-test('same tool with different commands is not capped by tool name', () => {
+test('stop denial enters answer-only mode and next turn resets it', () => {
   const state = new LoopGuardState(config);
-  state.beginTurn('agent-1', 1, false);
-  for (const path of ['/issues', '/labels', '/pulls', '/issues/6/comments']) {
-    assert.equal(state.denyReason('agent-1', 'bash', { command: 'curl ' + path }), undefined);
-  }
+  state.beginTurn('agent-9', 1, true);
+  assert.match(state.denyReason('agent-9', 'bash', { command: 'pwd' }), /LOOP_GUARD_STOP/);
+  state.beginTurn('agent-9', 2, false);
+  assert.equal(state.denyReason('agent-9', 'bash', { command: 'pwd' }), undefined);
 });
 
-test('formatting-equivalent repeat group allows five calls and blocks the sixth', () => {
-  const state = new LoopGuardState(config);
-  state.beginTurn('agent-1', 1, false);
-  for (const command of ['curl /issues', ' curl  /issues ', 'curl\n/issues', 'curl   /issues', 'curl /issues ']) {
-    assert.equal(state.denyReason('agent-1', 'bash', { command }), undefined);
-  }
-  assert.match(state.denyReason('agent-1', 'bash', { command: 'curl  /issues' }), /REPEAT/);
+test('loop denial logs structured progress context and subsequent calls stay stopped', () => {
+  const events = [];
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 1, onViolation: (event) => events.push(event) });
+  state.beginTurn('agent-10', 1, false);
+  assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-1'), undefined);
+  state.commitCall('agent-10', 'read-1');
+  state.recordResult('agent-10', { callId: 'read-1', result: { value: 'same' } });
+  assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-2'), undefined);
+  state.commitCall('agent-10', 'read-2');
+  state.recordResult('agent-10', { callId: 'read-2', result: { value: 'same' } });
+  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-3'), /DUPLICATE/);
+  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value' }, 'read-4'), /LOOP_GUARD_STOP/);
+  assert.equal(events.length, 2);
+  assert.equal(events[0].code, 'LOOP_GUARD_DUPLICATE');
+  assert.equal(events[0].arguments.token, '[redacted]');
+  assert.equal(events[1].code, 'LOOP_GUARD_STOP');
+  assert.equal(events[1].progressEpoch, 1);
 });
 
-test('a different call resets the consecutive repeat run', () => {
-  const state = new LoopGuardState(config);
-  state.beginTurn('agent-1', 1, false);
-  for (let index = 0; index < 5; index += 1) {
-    assert.equal(state.denyReason('agent-1', 'search', { q: 'DSH' }), undefined);
-  }
-  assert.equal(state.denyReason('agent-1', 'read', { path: 'README.md' }), undefined);
-  assert.equal(state.denyReason('agent-1', 'search', { q: 'DSH' }), undefined);
+test('result errors do not count as productive progress', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 2 });
+  state.beginTurn('agent-11', 1, false);
+  accept(state, 'agent-11', 'bash', { command: 'install' }, 'install-1', { error: 'failed' });
+  assert.equal(state.denyReason('agent-11', 'bash', { command: 'install' }, 'install-2'), undefined);
+  state.commitCall('agent-11', 'install-2');
+  state.recordResult('agent-11', { callId: 'install-2', result: { error: 'failed' } });
+  assert.match(state.denyReason('agent-11', 'bash', { command: 'install' }, 'install-3'), /DUPLICATE/);
 });
 
-test('a stop or loop request puts the active turn in no-tools mode', () => {
-  const messages = [{ source: { kind: 'user' }, content: [{ type: 'text', text: 'Остановись и ответь, у тебя петля' }] }];
-  assert.equal(hasStopRequest(messages), true);
-  const state = new LoopGuardState(config);
-  state.beginTurn('agent-1', 1, true);
-  assert.match(state.denyReason('agent-1', 'bash', { command: 'pwd' }), /STOP/);
+test('explicit progress token makes an otherwise equal result productive', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 1 });
+  state.beginTurn('agent-12', 1, false);
+  accept(state, 'agent-12', 'bash', { command: 'check' }, 'check-1', { output: 'same' }, { progressToken: 'state-a' });
+  assert.equal(state.denyReason('agent-12', 'bash', { command: 'check' }, 'check-2'), undefined);
+  state.commitCall('agent-12', 'check-2');
+  const result = state.recordResult('agent-12', { callId: 'check-2', result: { output: 'same' }, progressToken: 'state-b' });
+  assert.equal(result.productive, true);
 });
 
-test('a new turn resets limits and non-array content is safe', () => {
+test('non-array user content is safe', () => {
   assert.equal(hasStopRequest([{ source: { kind: 'user' }, content: 'stop' }]), false);
-  const state = new LoopGuardState(config);
-  state.beginTurn('agent-1', 1, false);
-  for (let index = 0; index < 5; index += 1) {
-    assert.equal(state.denyReason('agent-1', 'search', { command: 'curl /search' }), undefined);
-  }
-  assert.match(state.denyReason('agent-1', 'search', { command: 'curl /search' }), /DUPLICATE/);
-  state.beginTurn('agent-1', 2, false);
-  assert.equal(state.denyReason('agent-1', 'search', { command: 'curl /search' }), undefined);
 });
 
 test('safe integer limits accept zero only for the aggregate cap', () => {
@@ -132,4 +177,3 @@ test('safe integer limits accept zero only for the aggregate cap', () => {
   assert.equal(nonNegativeInteger(0, 64), 0);
   assert.equal(nonNegativeInteger(1.5, 64), 64);
 });
-

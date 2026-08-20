@@ -2,10 +2,13 @@
 
 The plugin owns in-memory guard state only. Agent pre-step records turn and stop
 mode. The documented DSH tools.guard hook synchronously evaluates each tool
-attempt and returns either allow or a denial reason. Repeat protection is keyed
-by the tool plus a normalized argument group (whitespace-only formatting
-differences are grouped), not by tool name alone; this lets a workflow reuse
-bash or curl for distinct operations.
+attempt and returns either allow or a denial reason. Each accepted call enters a
+progress ledger with a full argument fingerprint, a normalized repeat
+fingerprint, and a pending/committed lifecycle. tools/result records the result
+fingerprint and optional progress token. A successful change from the last
+successful evidence advances a progress epoch, clears no-progress repeat
+groups, and resets contextual budgets. Failed or unknown results leave the
+no-progress counters intact.
 
 The independent assistant-output branch subscribes to DSH session/event. It
 tracks assistant/chunk text-delta events and assistant/message final content by
