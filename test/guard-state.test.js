@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LoopGuardState, callFingerprint, callRepeatFingerprint, hasStopRequest, positiveInteger } from '../lib/guard-state.js';
 
-const config = { maxToolAttemptsPerTurn: 8, maxCallsPerRepeatGroup: 3, blockExactDuplicates: true };
+const config = {
+  maxToolAttemptsPerTurn: 8,
+  maxProgressToolCallsPerTurn: 16,
+  maxCallsPerRepeatGroup: 3,
+  blockExactDuplicates: true,
+};
 
 test('canonical fingerprint ignores object key order', () => {
   assert.equal(callFingerprint('search', { b: 2, a: 1 }), callFingerprint('search', { a: 1, b: 2 }));
@@ -24,6 +29,39 @@ test('tool attempts have a hard per-turn cap', () => {
   state.beginTurn('agent-1', 1, false);
   for (let index = 0; index < 8; index += 1) assert.equal(state.denyReason('agent-1', 'tool-' + index, { index }), undefined);
   assert.match(state.denyReason('agent-1', 'other', {}), /LIMIT/);
+});
+
+test('progress tools do not consume the ordinary budget but remain bounded', () => {
+  const state = new LoopGuardState({
+    ...config,
+    maxToolAttemptsPerTurn: 2,
+    maxProgressToolCallsPerTurn: 2,
+  });
+  state.beginTurn('agent-1', 1, false);
+  assert.equal(state.denyReason('agent-1', 'bash', { command: 'pwd' }), undefined);
+  assert.equal(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'one', status: 'in_progress' }] }), undefined);
+  assert.equal(state.denyReason('agent-1', 'bash', { command: 'ls' }), undefined);
+  assert.equal(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'two', status: 'in_progress' }] }), undefined);
+  assert.match(state.denyReason('agent-1', 'bash', { command: 'date' }), /LIMIT/);
+  assert.match(state.denyReason('agent-1', 'todo_write', { todos: [{ content: 'three', status: 'in_progress' }] }), /PROGRESS_LIMIT/);
+});
+
+test('denied duplicates do not consume the ordinary budget', () => {
+  const state = new LoopGuardState({ ...config, maxToolAttemptsPerTurn: 2 });
+  state.beginTurn('agent-1', 1, false);
+  assert.equal(state.denyReason('agent-1', 'search', { q: 'DSH' }), undefined);
+  assert.match(state.denyReason('agent-1', 'search', { q: 'DSH' }), /DUPLICATE/);
+  assert.equal(state.denyReason('agent-1', 'bash', { command: 'pwd' }), undefined);
+  assert.match(state.denyReason('agent-1', 'other', {}), /LIMIT/);
+});
+
+test('progress-tool near duplicates remain protected', () => {
+  const state = new LoopGuardState({ ...config, maxProgressToolCallsPerTurn: 8 });
+  state.beginTurn('agent-1', 1, false);
+  for (const content of ['one', ' one ', 'one' + String.fromCharCode(10)]) {
+    assert.equal(state.denyReason('agent-1', 'todo_write', { todos: [{ content, status: 'pending' }] }), undefined);
+  }
+  assert.match(state.denyReason('agent-1', 'todo_write', { todos: [{ content: '  one  ', status: 'pending' }] }), /REPEAT/);
 });
 
 test('same tool with different commands is not capped by tool name', () => {

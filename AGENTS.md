@@ -31,3 +31,9 @@
 
 - Unit tests: npm test
 - Syntax validation: npm run check
+
+- 2026-08-20: progress/state tools use a separate finite per-turn budget.
+  - Reason: todo_write is a mandatory session-state update and must remain
+    available after ordinary tool work reaches its safety cap.
+  - Exact duplicates and normalized repeats still apply; the separate budget is
+    not an unlimited bypass.
