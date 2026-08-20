@@ -9,4 +9,5 @@
           - todo_write
         maxCallsPerRepeatGroup: 5
         blockExactDuplicates: true
-
+        assistantOutputGuard: true
+        maxRepeatedAssistantLines: 5
