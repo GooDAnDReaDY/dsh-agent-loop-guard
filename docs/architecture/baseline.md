@@ -8,14 +8,17 @@ differences are grouped), not by tool name alone; this lets a workflow reuse
 bash or curl for distinct operations.
 
 The independent assistant-output branch subscribes to DSH session/event. It
-tracks assistant/chunk text-delta events by session, turn, step, and text block.
-After the configured number of identical complete normalized lines, and only
-when no tool call is active, it calls the public agent.cancel API with
-keepInbox: true. Block, step, turn, tool, and session-disposed events reset or
-dispose the in-memory state.
+tracks assistant/chunk text-delta events and assistant/message final content by
+session. The final-message path accepts only Array.isArray(message.content)
+text blocks and deduplicates messages already seen in the stream. After the
+configured number of identical complete normalized lines, and only when no tool
+call is active, it calls the public agent.cancel API with keepInbox: false.
+The streak survives block, step, and turn boundaries and latches until a new
+user message; tool calls reset the streak, and session-disposed events dispose
+the in-memory state.
 
 user message -> pre-step records turn -> model tool call -> tools.guard -> normalized DSH tool result -> model text response
-assistant/chunk text-delta -> output state -> repeated-line threshold -> agent.cancel(keepInbox)
+assistant/chunk or assistant/message -> output state -> repeated-line threshold -> agent.cancel(keepInbox: false)
 
 No DSH core, session log, client plugin, database, or external service changes.
 
