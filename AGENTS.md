@@ -48,3 +48,11 @@
   - Exact and normalized repeats still apply after five consecutive calls; the
     separate budget is not an unlimited bypass.
 
+
+- 2026-08-20: streaming assistant-output loops are guarded through
+  session/event plus the public agents.get(session.id).cancel API.
+  - Reason: the observed failure emitted hundreds of assistant/chunk text
+    records without new tool calls, so tools.guard could not see it.
+  - The default threshold is five consecutive identical normalized complete
+    lines; cancellation uses keepInbox: true. Active tool calls suppress this
+    detector, and no DSH core or session-log mutation is allowed.

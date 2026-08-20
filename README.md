@@ -31,6 +31,15 @@ call reaches the around-dispatch stage.
 
 Denials use the documented tools.guard API. DSH materializes them as normal structured tool results, preserving session persistence.
 
+The optional assistant-output guard is enabled by default. It subscribes to the
+documented session event stream and watches complete non-empty text lines from
+assistant/chunk text-delta events. Five consecutive normalized copies of the
+same line (configurable with maxRepeatedAssistantLines) cancel the active agent
+with keepInbox: true, preserving pending work for a concise recovery response.
+The guard resets at block/step/turn boundaries, pauses while a tool call is
+active, and is disabled with assistantOutputGuard: false. This is specifically
+for a stuck streaming text loop; it does not replace tool repeat protection.
+
 ## Verification
 
 npm test
