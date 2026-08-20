@@ -56,3 +56,12 @@
   - The default threshold is five consecutive identical normalized complete
     lines; cancellation uses keepInbox: true. Active tool calls suppress this
     detector, and no DSH core or session-log mutation is allowed.
+
+- 2026-08-20: assistant-output repetition is session-scoped across block, step,
+  and turn boundaries, with assistant/message as a final-message fallback.
+  - Reason: the observed reinstall loop crossed DSH steps/turns and was persisted
+    as text-chunks, so resetting at every step made the old detector blind.
+- 2026-08-20: output-loop cancellation uses keepInbox: false and latches until
+  the next user message.
+  - Reason: preserving the pending inbox allowed a cancelled loop to re-enter
+    and repeat; clearing it is required to stop the generation at the boundary.

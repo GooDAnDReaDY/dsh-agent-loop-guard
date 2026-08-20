@@ -7,8 +7,10 @@ Russian stop and loop detection, malformed non-array user content, and turn
 reset.
 
 Separate assistant-output unit coverage verifies whitespace normalization,
-five-line threshold behavior, split streaming chunks, block/step/session reset,
-tool-call suppression, and configurable thresholds.
+five-line threshold behavior, split streaming chunks, cross-block/step/turn
+persistence, assistant/message fallback with malformed-content safety,
+deduplication, tool-call suppression, user-message reset, and configurable
+thresholds. The fixture is derived from the observed reinstall narration loop.
 
 Syntax checks validate ESM source files. An integration smoke test must emit
 session/event assistant/chunk events through a fake DSH context and verify one

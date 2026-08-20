@@ -33,12 +33,14 @@ Denials use the documented tools.guard API. DSH materializes them as normal stru
 
 The optional assistant-output guard is enabled by default. It subscribes to the
 documented session event stream and watches complete non-empty text lines from
-assistant/chunk text-delta events. Five consecutive normalized copies of the
-same line (configurable with maxRepeatedAssistantLines) cancel the active agent
-with keepInbox: true, preserving pending work for a concise recovery response.
-The guard resets at block/step/turn boundaries, pauses while a tool call is
-active, and is disabled with assistantOutputGuard: false. This is specifically
-for a stuck streaming text loop; it does not replace tool repeat protection.
+assistant/chunk text-delta events, with assistant/message as a lossless final-message
+fallback. Five consecutive normalized copies of the same line (configurable with
+maxRepeatedAssistantLines) are detected across block, step, and turn boundaries.
+The guard latches for the rest of the session, cancels the active agent with
+keepInbox: false so queued work cannot re-enter the same loop, and resets only
+when a new user message arrives or the session is disposed. Active tool calls
+pause and reset the text streak. This is specifically for a stuck streaming or
+message-output loop; it does not replace tool repeat protection.
 
 ## Verification
 
