@@ -3,9 +3,10 @@
     - id: dsh-agent-loop-guard
       name: dsh-agent-loop-guard
       config:
-        maxToolAttemptsPerTurn: 8
+        maxToolAttemptsPerTurn: 64
         maxProgressToolCallsPerTurn: 16
         progressToolNames:
           - todo_write
-        maxCallsPerRepeatGroup: 3
+        maxCallsPerRepeatGroup: 5
         blockExactDuplicates: true
+
