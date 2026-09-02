@@ -30,3 +30,8 @@ tools (default todo_write) use a separate finite maxProgressToolCallsPerTurn
 budget, so required checklist writes remain available after ordinary research
 reaches its cap without creating an unlimited escape from the guard. Exact and
 normalized-repeat checks run before either budget and apply to both classes.
+
+
+## Assistant output loop detection
+
+The host-only guard keeps two independent bounded detectors. The existing detector counts consecutive normalized complete lines. The multi-line detector fingerprints each completed assistant block (at block-end or final assistant message), keeps the count across step and turn boundaries, and trips only after the configured number of identical blocks without an intervening user message or tool call. A streamed block and its final message are counted once.

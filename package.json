@@ -1,6 +1,6 @@
 {
-  "name": "dsh-agent-loop-guard",
-  "version": "0.2.1",
+  "name": "@goodandready/dsh-agent-loop-guard",
+  "version": "0.2.2",
   "description": "Fail-closed runtime tool-call loop guard for DeepSeek Harness.",
   "type": "module",
   "main": "lib/index.js",
@@ -13,6 +13,9 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
+    "README.ru.md",
+    "README.zh.md",
+    "docs",
     "LICENSE"
   ],
   "scripts": {
@@ -28,5 +31,13 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard.git"
+  },
+  "homepage": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard",
+  "bugs": {
+    "url": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard/issues"
   }
 }
