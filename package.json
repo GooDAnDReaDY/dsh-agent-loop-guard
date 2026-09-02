@@ -1,6 +1,6 @@
 {
   "name": "@goodandready/dsh-agent-loop-guard",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Fail-closed runtime tool-call loop guard for DeepSeek Harness.",
   "type": "module",
   "main": "lib/index.js",
@@ -13,8 +13,6 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
-    "README.ru.md",
-    "README.zh.md",
     "docs",
     "LICENSE"
   ],
