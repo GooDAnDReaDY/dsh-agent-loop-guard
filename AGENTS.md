@@ -77,3 +77,5 @@
 - 2026-08-20: every guard denial is emitted as a redacted structured log event.
   - Reason: live tuning requires call identity, denial code, counters, and the
     last progress evidence without leaking Gitea tokens or other secrets.
+
+- 2026-09-02: added bounded repeated multi-line assistant-block detection with stream/final-message deduplication; line-level detection remains for single-line loops.

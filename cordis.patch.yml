@@ -1,7 +1,7 @@
 # Host-only DSH bundle. No dsh.client entry exists because this package has no browser module.
 - insert:
-    - id: dsh-agent-loop-guard
-      name: dsh-agent-loop-guard
+    - id: '@goodandready/dsh-agent-loop-guard'
+      name: '@goodandready/dsh-agent-loop-guard'
       config:
         maxToolAttemptsPerTurn: 64
         maxProgressToolCallsPerTurn: 16
@@ -11,3 +11,5 @@
         blockExactDuplicates: true
         assistantOutputGuard: true
         maxRepeatedAssistantLines: 5
+        maxRepeatedAssistantBlocks: 5
+        maxAssistantBlockChars: 16384

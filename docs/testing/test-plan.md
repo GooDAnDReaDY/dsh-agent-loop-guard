@@ -10,7 +10,8 @@ tokens, malformed non-array user content, and turn reset.
 Separate assistant-output coverage verifies whitespace normalization, five-line
 threshold behavior, split streaming chunks, cross-block/step/turn persistence,
 assistant/message fallback with malformed-content safety, deduplication,
-tool-call suppression, user-message reset, and configurable thresholds. The
+tool-call suppression, user-message reset, configurable thresholds, multi-line
+block normalization, block repetition, and stream/final-message deduplication. The
 fixture is derived from the observed reinstall narration loop.
 
 Syntax checks validate ESM source files. Runtime smoke tests install the bundle

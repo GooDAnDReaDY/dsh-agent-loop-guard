@@ -4,6 +4,7 @@ import {
   AssistantOutputGuardState,
   assistantTextFromMessage,
   normalizeAssistantLine,
+  normalizeAssistantBlock,
   positiveOutputLimit,
 } from '../lib/assistant-output-state.js';
 
@@ -120,6 +121,38 @@ test('output guard threshold is configurable', () => {
   assert.equal(hit.count, 1);
 });
 
+test('assistant block normalization preserves meaningful line boundaries', () => {
+  assert.equal(normalizeAssistantBlock('  alpha  \r\n beta\n'), 'alpha\nbeta');
+  assert.equal(normalizeAssistantBlock('single line'), 'single line');
+});
+
+test('five repeated multi-line assistant blocks trigger the block guard', () => {
+  const state = new AssistantOutputGuardState({ maxRepeatedAssistantLines: 5, maxRepeatedAssistantBlocks: 5 });
+  for (let turn = 1; turn <= 4; turn += 1) {
+    assert.equal(state.observeMessage('session-block-loop', {
+      id: 'block-' + turn, turn, step: 1, text: 'Continuing reinstall.\nPatching the package.\n',
+    }), undefined);
+  }
+  const hit = state.observeMessage('session-block-loop', {
+    id: 'block-5', turn: 5, step: 1, text: 'Continuing reinstall.\nPatching the package.\n',
+  });
+  assert.equal(hit.count, 5);
+  assert.match(hit.reason, /ASSISTANT_BLOCK/);
+});
+
+test('streamed block and final assistant message are counted once', () => {
+  const state = new AssistantOutputGuardState({ maxRepeatedAssistantLines: 5, maxRepeatedAssistantBlocks: 2 });
+  assert.equal(state.observeText('session-block-dedupe', { turn: 1, step: 1, text: 'alpha\n' }), undefined);
+  assert.equal(state.observeText('session-block-dedupe', { turn: 1, step: 1, text: 'beta\n' }), undefined);
+  assert.equal(state.endBlock('session-block-dedupe'), undefined);
+  assert.equal(state.observeMessage('session-block-dedupe', {
+    id: 'final-1', turn: 1, step: 1, text: 'alpha\nbeta\n',
+  }), undefined);
+  const hit = state.observeMessage('session-block-dedupe', {
+    id: 'final-2', turn: 2, step: 1, text: 'alpha\nbeta\n',
+  });
+  assert.equal(hit.count, 2);
+});
 test('replay fixture detects narration across turns', async () => {
   const { readFile } = await import('node:fs/promises');
   const fixture = JSON.parse(await readFile(new URL('./fixtures/assistant-output-loop.json', import.meta.url), 'utf8'));
