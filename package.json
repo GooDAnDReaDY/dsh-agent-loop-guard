@@ -31,5 +31,13 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard.git"
+  },
+  "homepage": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard",
+  "bugs": {
+    "url": "https://github.com/GooDAnDReaDY/dsh-agent-loop-guard/issues"
   }
 }
