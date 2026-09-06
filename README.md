@@ -176,3 +176,8 @@ npm run check
 ## 📄 License
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
+
+
+## Changed in v0.2.4
+
+#26: `settings.register` + Settings → Plugins card; live config updates. Patch uses `config: {}` (schema defaults). #2: add reviewed `package-lock.json`.

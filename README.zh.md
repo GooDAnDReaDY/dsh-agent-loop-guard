@@ -44,3 +44,8 @@ npm run check
 ## Assistant output settings
 
 The output guard uses maxRepeatedAssistantLines for single-line repetition and maxRepeatedAssistantBlocks (default 5) for identical multi-line blocks. maxAssistantBlockChars (default 16384) bounds the captured block fingerprint. Streaming chunks and their final assistant/message are deduplicated.
+
+
+## Changed in v0.2.4
+
+#26: `settings.register` + Settings → Plugins card; live config. Patch `config: {}`. #2/#21: reviewed `package-lock.json`.
