@@ -1,15 +1,5 @@
-# Host-only DSH bundle. No dsh.client entry exists because this package has no browser module.
+# Host + optional settings UI. Defaults live in Config schema / Settings card.
 - insert:
     - id: '@goodandready/dsh-agent-loop-guard'
       name: '@goodandready/dsh-agent-loop-guard'
-      config:
-        maxToolAttemptsPerTurn: 64
-        maxProgressToolCallsPerTurn: 16
-        progressToolNames:
-          - todo_write
-        maxCallsPerRepeatGroup: 5
-        blockExactDuplicates: true
-        assistantOutputGuard: true
-        maxRepeatedAssistantLines: 5
-        maxRepeatedAssistantBlocks: 5
-        maxAssistantBlockChars: 16384
+      config: {}
