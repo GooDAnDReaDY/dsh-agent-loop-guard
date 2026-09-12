@@ -180,4 +180,8 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
 ## Changed in v0.2.4
 
-#26: `settings.register` + Settings → Plugins card; live config updates. Patch uses `config: {}` (schema defaults). #2: add reviewed `package-lock.json`.
+- **Settings UI**: allow saving `0` for `maxToolAttemptsPerTurn` to cleanly disable aggregate turn budget (#28).
+- **Outcome Analysis**: recognize `{ error: null }` and `{ error: false }` as non-failures in execution outcome evaluation (#28).
+- **Alternating Loop Breaker**: track prior results per tool fingerprint (`state.lastResults`) to block alternating non-productive loops (A ➔ B ➔ A ➔ B) (#28).
+- **Settings Card**: add reactive `settings.plugin.item` card in DSH Settings with live configuration updates (#26).
+- **Test Suite**: expanded to 31 automated tests covering error edge cases and alternating loop enforcement (#28).

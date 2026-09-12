@@ -153,16 +153,26 @@ dsh-agent-loop-guard:
 ---
 
 ## 🧪 测试与校验
-
-运行全部 26 个单元测试及静态代码检查：
-
+ 
+运行全部 31 个单元测试及静态代码检查：
+ 
 ```bash
 npm test
 npm run check
 ```
-
+ 
 ---
-
+ 
 ## 📄 开源许可证
-
+ 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
+ 
+---
+ 
+## v0.2.4 更新日志
+ 
+- **设置界面**：修复 `maxToolAttemptsPerTurn` 保存为 `0` 的问题，允许正常禁用单回合工具调用上限 (#28)。
+- **结果解析**：对象中的 `{ error: null }` 与 `{ error: false }` 正确识别为非错误，不再阻碍进展推进 (#28)。
+- **交替循环拦截**：通过 `state.lastResults` 跟踪每个工具的先前结果，有效拦截无实质进展的交替循环调用 (A ➔ B ➔ A ➔ B) (#28)。
+- **设置卡片**：集成标准 `settings.plugin.item` 配置卡片，支持动态热重载 (#26)。
+- **测试用例**：自动化测试扩展至 31 个测试。
