@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="../README.md"><b>🇬🇧 English</b></a> •
+  <a href="README.md"><b>🇬🇧 English</b></a> •
   <a href="README.ru.md"><b>🇷🇺 Русский</b></a> •
   <a href="README.zh.md"><b>🇨🇳 中文说明</b></a>
 </p>
