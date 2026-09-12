@@ -5,14 +5,14 @@
 - Project: dsh-agent-loop-guard
 - DEV: /mnt/external/Project/DEV/dhsplugins/dsh-agent-loop-guard
 - OPT: undefined; deployment needs explicit user approval.
-- Purpose: host-only DeepSeek Harness plugin that bounds tool-call loops.
+- Purpose: DeepSeek Harness plugin that bounds tool-call and assistant-output loops.
 - Current status: active development.
-- Status verified: 2026-08-20 through Gitea and installed DSH lifecycle inspection.
+- Status verified: 2026-09-12 through Gitea and installed DSH lifecycle inspection.
 
 ## Constraints
 
-- Use public DSH tools.guard API. Never patch DSH core.
-- Keep the bundle host-only. No client metadata or browser entrypoint.
+- Use public DSH tools.guard API and Cordis lifecycle hooks. Never patch DSH core.
+- Host-side runtime enforcement with browser settings card (`settings.plugin.item`).
 - Guard rejections must remain normal DSH tool results; never create session events manually.
 - Deploy path remains undefined until approved.
 
@@ -79,3 +79,6 @@
     last progress evidence without leaking Gitea tokens or other secrets.
 
 - 2026-09-02: added bounded repeated multi-line assistant-block detection with stream/final-message deduplication; line-level detection remains for single-line loops.
+- 2026-09-06: added settings card (`lib/client.js`) via `settings.plugin.item` slot with live configuration sync.
+- 2026-09-12: prevented non-progress alternating loops (A -> B -> A -> B) by validating each call outcome against its prior result in `state.lastResults`.
+- 2026-09-12: ensured `{ error: null }` and `{ error: false }` are not misclassified as execution failures.

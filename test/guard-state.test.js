@@ -177,3 +177,31 @@ test('safe integer limits accept zero only for the aggregate cap', () => {
   assert.equal(nonNegativeInteger(0, 64), 0);
   assert.equal(nonNegativeInteger(1.5, 64), 64);
 });
+
+test('result with error: null or error: false counts as productive progress', () => {
+  const state = new LoopGuardState(config);
+  state.beginTurn('agent-null-err', 1, false);
+  const outcome1 = accept(state, 'agent-null-err', 'api', { endpoint: '/users' }, 'call-1', { ok: true, data: [1, 2], error: null });
+  assert.equal(outcome1.productive, true);
+  const outcome2 = accept(state, 'agent-null-err', 'api', { endpoint: '/posts' }, 'call-2', { ok: true, data: [3, 4], error: false });
+  assert.equal(outcome2.productive, true);
+});
+
+test('alternating identical calls between two tools without state change is blocked', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 3 });
+  state.beginTurn('agent-alt', 1, false);
+  const r1 = accept(state, 'agent-alt', 'read', { path: 'a.txt' }, 'call-a-1', { content: 'AAA' });
+  assert.equal(r1.productive, true);
+  const r2 = accept(state, 'agent-alt', 'read', { path: 'b.txt' }, 'call-b-1', { content: 'BBB' });
+  assert.equal(r2.productive, true);
+
+  for (let i = 2; i <= 4; i += 1) {
+    const ra = accept(state, 'agent-alt', 'read', { path: 'a.txt' }, 'call-a-' + i, { content: 'AAA' });
+    assert.equal(ra.productive, false);
+    const rb = accept(state, 'agent-alt', 'read', { path: 'b.txt' }, 'call-b-' + i, { content: 'BBB' });
+    assert.equal(rb.productive, false);
+  }
+
+  const reason = state.denyReason('agent-alt', 'read', { path: 'a.txt' }, 'call-a-5');
+  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+});
