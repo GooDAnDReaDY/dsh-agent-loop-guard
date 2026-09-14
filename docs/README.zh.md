@@ -182,6 +182,12 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
  
 ---
  
+## v0.2.7 更新日志
+
+- **延迟插槽注入机制**：使用 `registerSlotWhenReady` 与 `ctx.slots.inject` 包装 `settings.plugin.item` 注册逻辑，防止插件在浏览器前端初始化时因插槽未提前声明而抛出 `slot "settings.plugin.item" is not declared` 崩溃异常 (#33)。
+- **插槽规范对齐**：根据 `dsh-plugin-authoring` 标准，将插槽注册参数调整为 `key: NS` 并注入 `inject: () => ({ ctx })` (#33)。
+- **客户端自动化测试**：扩展 `test/client.test.js`，全面验证插槽延迟注入逻辑与缺失回退机制 (#33)。
+
 ## v0.2.6 更新日志
 
 - **浏览器 ModuleLoader 导入修复**：在 `lib/client.js` 的 factory 函数中显式声明 `var exports = module.exports;`，彻底修复 DSH 网页端 ModuleLoader 动态加载时抛出的 `ReferenceError: exports is not defined` 异常 (#31)。
