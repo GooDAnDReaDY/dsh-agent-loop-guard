@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,4 +47,110 @@ test('client.js registers with ModuleLoader and defines exports properly without
   assert.ok(factoryExports, 'Factory should return exports object');
   assert.deepEqual(Array.from(factoryExports.inject), ['slots', 'settingsScope', 'locale']);
   assert.equal(typeof factoryExports.apply, 'function');
+});
+
+test('apply registers settings.plugin.item via slots.inject when available', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  const mockRequire = (id) => {
+    if (id === 'react') {
+      return {
+        createElement: () => ({}),
+        useState: (init) => [init, () => {}],
+        useEffect: () => {},
+        useRef: () => ({ current: null }),
+      };
+    }
+    throw new Error(`Unexpected require: ${id}`);
+  };
+
+  const factoryExports = loadedModule.factory(mockRequire);
+
+  let injectedSlot = null;
+  let injectCallback = null;
+  let registeredSlot = null;
+
+  const mockCtx = {
+    locale: { register: () => {} },
+    slots: {
+      inject: (name, cb) => {
+        injectedSlot = name;
+        injectCallback = cb;
+      },
+      register: (opts, comp) => {
+        registeredSlot = opts;
+      },
+    },
+  };
+
+  assert.doesNotThrow(() => {
+    factoryExports.apply(mockCtx);
+  });
+
+  assert.equal(injectedSlot, 'settings.plugin.item', 'should subscribe via slots.inject');
+  assert.equal(registeredSlot, null, 'should not register synchronously before inject callback fires');
+
+  // Trigger inject callback
+  injectCallback();
+  assert.ok(registeredSlot, 'should register when inject callback runs');
+  assert.equal(registeredSlot.name, 'settings.plugin.item');
+  assert.equal(registeredSlot.key, '@goodandready/dsh-agent-loop-guard');
+  assert.equal(registeredSlot.locale, '@goodandready/dsh-agent-loop-guard');
+});
+
+test('apply safely handles direct slot registration if slots.inject throws or is unavailable', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  const mockRequire = (id) => {
+    if (id === 'react') {
+      return {
+        createElement: () => ({}),
+        useState: (init) => [init, () => {}],
+        useEffect: () => {},
+        useRef: () => ({ current: null }),
+      };
+    }
+    throw new Error(`Unexpected require: ${id}`);
+  };
+
+  const factoryExports = loadedModule.factory(mockRequire);
+
+  // Scenario 1: slots.inject throws
+  let directRegistered = null;
+  const mockCtx1 = {
+    slots: {
+      inject: () => { throw new Error('inject failed'); },
+      register: (opts) => { directRegistered = opts; },
+    },
+  };
+  assert.doesNotThrow(() => {
+    factoryExports.apply(mockCtx1);
+  });
+  assert.ok(directRegistered);
+
+  // Scenario 2: slots.register throws "slot is not declared"
+  const mockCtx2 = {
+    slots: {
+      register: () => { throw new Error('slot "settings.plugin.item" is not declared'); },
+    },
+  };
+  assert.doesNotThrow(() => {
+    factoryExports.apply(mockCtx2);
+  });
 });

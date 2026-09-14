@@ -184,6 +184,12 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
  
 ---
  
+## Изменения в версии v0.2.7
+
+- **Отложенная инъекция слота настроек**: регистрация карточки `settings.plugin.item` обёрнута в `registerSlotWhenReady` с использованием `ctx.slots.inject`, что исключает ошибку `slot "settings.plugin.item" is not declared` при ранней загрузке плагина в браузере (#33).
+- **Соответствие стандарту слотов DSH**: дескриптор слота переведён на `key: NS` и `inject: () => ({ ctx })` согласно стандарту `dsh-plugin-authoring` (#33).
+- **Автотесты клиента**: расширен тестовый набор `test/client.test.js` с проверкой подписки через `slots.inject` и безопасного fallback-поведения (#33).
+
 ## Изменения в версии v0.2.6
 
 - **Исправление загрузчика браузера**: добавлена явная инициализация `var exports = module.exports;` в функции factory `lib/client.js`, исключающая ошибку `ReferenceError: exports is not defined` при импорте клиентского бандла загрузчиком веб-интерфейса DSH ModuleLoader (#31).

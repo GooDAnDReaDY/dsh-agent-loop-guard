@@ -190,6 +190,12 @@ npm run check
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+## Changed in v0.2.7
+
+- **Deferred Slot Injection**: wrapped `settings.plugin.item` registration in `registerSlotWhenReady` with `ctx.slots.inject` to prevent `slot "settings.plugin.item" is not declared` crash during early plugin initialization (#33).
+- **Slot Specification Compliance**: aligned slot registration descriptor to use `key: NS` and `inject: () => ({ ctx })` according to `dsh-plugin-authoring` standard (#33).
+- **Automated Client Suite**: added tests in `test/client.test.js` validating deferred slot injection and safe fallback (#33).
+
 ## Changed in v0.2.6
 
 - **Browser ModuleLoader Fix**: added explicit `var exports = module.exports;` in `lib/client.js` factory function to prevent `ReferenceError: exports is not defined` when client bundle is imported by DSH WebUI ModuleLoader (#31).
