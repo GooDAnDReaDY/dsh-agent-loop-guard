@@ -205,3 +205,82 @@ test('alternating identical calls between two tools without state change is bloc
   const reason = state.denyReason('agent-alt', 'read', { path: 'a.txt' }, 'call-a-5');
   assert.match(reason, /LOOP_GUARD_DUPLICATE/);
 });
+
+test('telemetry tracks violations and resets correctly', () => {
+  const state = new LoopGuardState(config);
+  state.beginTurn('agent-tel', 1, false);
+
+  assert.equal(state.getTelemetry().totalViolations, 0);
+  accept(state, 'agent-tel', 'read', { file: 'x' }, 'c1', { v: 1 });
+  for (let i = 2; i <= 6; i += 1) {
+    state.denyReason('agent-tel', 'read', { file: 'x' }, 'c' + i);
+    state.commitCall('agent-tel', 'c' + i);
+    state.recordResult('agent-tel', { callId: 'c' + i, result: { v: 1 } });
+  }
+
+  // Trigger violation
+  state.denyReason('agent-tel', 'read', { file: 'x' }, 'c7');
+  const t1 = state.getTelemetry();
+  assert.equal(t1.totalViolations >= 1, true);
+  assert.equal(t1.byCode.LOOP_GUARD_DUPLICATE >= 1, true);
+  assert.equal(t1.lastViolation?.code, 'LOOP_GUARD_DUPLICATE');
+
+  // External violation (e.g. output loop)
+  state.recordExternalViolation('LOOP_GUARD_OUTPUT', 'five repeated lines');
+  const t2 = state.getTelemetry();
+  assert.equal(t2.byCode.LOOP_GUARD_OUTPUT, 1);
+
+  // Reset
+  state.resetTelemetry();
+  assert.equal(state.getTelemetry().totalViolations, 0);
+});
+
+test('strict tools apply lower repeat threshold', () => {
+  const state = new LoopGuardState({
+    ...config,
+    maxCallsPerRepeatGroup: 6,
+    strictTools: ['danger_tool'],
+    strictToolLimit: 2,
+  });
+  state.beginTurn('agent-strict', 1, false);
+
+  accept(state, 'agent-strict', 'danger_tool', { cmd: 'rm' }, 'd0', { ok: true });
+  accept(state, 'agent-strict', 'danger_tool', { cmd: 'rm' }, 'd1', { ok: true });
+  accept(state, 'agent-strict', 'danger_tool', { cmd: 'rm' }, 'd2', { ok: true });
+
+  const reason = state.denyReason('agent-strict', 'danger_tool', { cmd: 'rm' }, 'd3');
+  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+});
+
+test('dry run mode records violations without blocking execution', () => {
+  const state = new LoopGuardState({
+    ...config,
+    maxCallsPerRepeatGroup: 2,
+    dryRunMode: true,
+  });
+  state.beginTurn('agent-dry', 1, false);
+
+  accept(state, 'agent-dry', 'read', { f: 1 }, 'dry0', { res: 1 });
+  accept(state, 'agent-dry', 'read', { f: 1 }, 'dry1', { res: 1 });
+  accept(state, 'agent-dry', 'read', { f: 1 }, 'dry2', { res: 1 });
+
+  // Exceeds limit, but dryRunMode should return undefined
+  const reason = state.denyReason('agent-dry', 'read', { f: 1 }, 'dry3');
+  assert.equal(reason, undefined);
+  // Telemetry is still recorded!
+  assert.equal(state.getTelemetry().totalViolations >= 1, true);
+});
+
+test('actionable guidance is returned on duplicate rejection', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 2 });
+  state.beginTurn('agent-guide', 1, false);
+  accept(state, 'agent-guide', 'test_tool', { a: 1 }, 'g0', { out: 'same' });
+  accept(state, 'agent-guide', 'test_tool', { a: 1 }, 'g1', { out: 'same' });
+  accept(state, 'agent-guide', 'test_tool', { a: 1 }, 'g2', { out: 'same' });
+
+  const reason = state.denyReason('agent-guide', 'test_tool', { a: 1 }, 'g3');
+  assert.match(reason, /ACTION REQUIRED:/);
+  assert.match(reason, /Stop repeating this action/);
+});
+
+
