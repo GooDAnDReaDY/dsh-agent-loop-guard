@@ -164,7 +164,10 @@ dsh-agent-loop-guard:
 | `maxProgressToolCallsPerTurn` | `number` | `16` | Maximum consecutive calls to progress tools (`todo_write`) without substantive progress. |
 | `progressToolNames` | `array` | `["todo_write"]` | Array of tool names considered progress markers. |
 | `maxCallsPerRepeatGroup` | `number` | `5` | Maximum tool calls allowed within the same repeat group without producing a new result. |
+| `strictTools` | `array` | `[]` | Array of tool names subjected to lower repeat tolerance (e.g. mutating tools). |
+| `strictToolLimit` | `number` | `3` | Maximum repeat count allowed for tools specified in `strictTools`. |
 | `blockExactDuplicates` | `boolean` | `true` | Immediately block consecutive identical calls with zero state change. |
+| `dryRunMode` | `boolean` | `false` | Audit mode: logs violations and tracks telemetry without aborting tool calls. |
 | `assistantOutputGuard` | `boolean` | `true` | Enable real-time detection and cancellation of repetitive assistant output loops. |
 | `maxRepeatedAssistantLines` | `number` | `5` | Threshold of consecutive identical output lines to trigger session cancellation. |
 | `maxRepeatedAssistantBlocks` | `number` | `5` | Threshold of repeated multi-line markdown blocks before aborting generation. |
@@ -186,6 +189,17 @@ npm run check
 ## 📄 License
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
+
+## Changed in v0.2.5
+
+- **One-Click Updater**: integrated reusable host-side updater (`lib/plugin-updater.js`) with endpoint `/api/@goodandready/dsh-agent-loop-guard/update` and settings UI button/status (#29).
+- **Strict Tools & Adaptive Budgets**: added `strictTools` and `strictToolLimit` to impose tighter quotas on sensitive or mutating commands (#29).
+- **Dry-Run / Audit-Only Mode**: added `dryRunMode` setting to audit agent execution and record metrics without breaking active tool calls (#29).
+- **Protection Telemetry & Observability**: live incident counters (`LOOP_GUARD_DUPLICATE`, `LOOP_GUARD_REPEAT`, `LOOP_GUARD_LIMIT`, `LOOP_GUARD_OUTPUT`) exposed via endpoint `/api/@goodandready/dsh-agent-loop-guard/telemetry` and rendered in the UI card with one-click reset (#29).
+- **Smart Recovery Guidance**: violation messages now provide structured steering instructions for LLMs (e.g. DeepSeek-R1 / V3) indicating exact corrective actions (#29).
+- **Strict Multilingual Standards**: codebase cleaned to canonical English (`en`) and complete Chinese (`zh`) with zero internal Russian code, registered translation issue #197 in `goodandready/dsh-russian-lang` (#29).
+- **Design Contract**: created mandatory `docs/design/DESIGN.md` per `project-design-contract` standard (#29).
+- **Expanded Test Suite**: 37 automated tests covering updater semver/security, telemetry tracking, strict tool thresholds, and dry-run mode (#29).
 
 ## Changed in v0.2.4
 

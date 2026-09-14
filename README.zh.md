@@ -154,7 +154,10 @@ dsh-agent-loop-guard:
 | `maxProgressToolCallsPerTurn` | `number` | `16` | 进度标记工具（`todo_write`）连续无进展调用的上限。 |
 | `progressToolNames` | `array` | `["todo_write"]` | 标记任务进度的工具名称数组。 |
 | `maxCallsPerRepeatGroup` | `number` | `5` | 同一组工具未产生新结果时允许调用的最大次数。 |
+| `strictTools` | `array` | `[]` | 受到更严格重复调用限制的敏感/修改类工具名称列表。 |
+| `strictToolLimit` | `number` | `3` | `strictTools` 列表中工具的最大允许重复次数。 |
 | `blockExactDuplicates` | `boolean` | `true` | 是否立即拦截结果毫无变化的连续相同调用。 |
+| `dryRunMode` | `boolean` | `false` | 审计模式：记录告警与遥测指标，但不实际拦截工具调用。 |
 | `assistantOutputGuard` | `boolean` | `true` | 是否开启助手流式文本输出防死循环监测。 |
 | `maxRepeatedAssistantLines` | `number` | `5` | 触发输出中断的连续相同单行阈值。 |
 | `maxRepeatedAssistantBlocks` | `number` | `5` | 触发输出中断的连续重复段落阈值。 |
@@ -164,7 +167,7 @@ dsh-agent-loop-guard:
 
 ## 🧪 测试与校验
  
-运行全部 31 个单元测试及静态代码检查：
+运行全部 37 个自动化单元测试及静态代码检查：
  
 ```bash
 npm test
@@ -179,6 +182,17 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
  
 ---
  
+## v0.2.5 更新日志
+
+- **一键平滑更新**：集成宿主端更新器（`lib/plugin-updater.js`），提供 `/api/@goodandready/dsh-agent-loop-guard/update` 接口与设置界面更新状态/按钮 (#29)。
+- **敏感工具严格配额**：新增 `strictTools` 与 `strictToolLimit` 配置，强化对高危/文件修改工具的重复调用限制 (#29)。
+- **审计模式 (Dry-Run)**：新增 `dryRunMode` 配置，支持在不阻断智能体调用的前提下记录告警与度量数据 (#29)。
+- **防护遥测与监控**：实时统计拦截指标（`LOOP_GUARD_DUPLICATE`, `LOOP_GUARD_REPEAT`, `LOOP_GUARD_LIMIT`, `LOOP_GUARD_OUTPUT`），提供 `/api/@goodandready/dsh-agent-loop-guard/telemetry` 接口与一键重置 (#29)。
+- **LLM 智能恢复引导**：在拦截消息中为 DeepSeek-R1 / V3 等模型提供结构化的破局指导与操作建议 (#29)。
+- **严格多语言规范**：代码库仅保留标准英文（`en`）与中文（`zh`），俄语本地化转入 Issue #197 (`goodandready/dsh-russian-lang`) 处理 (#29)。
+- **设计契约**：按照 `project-design-contract` 标准建立 `docs/design/DESIGN.md` (#29)。
+- **扩展自动化测试**：总测试用例扩充至 37 个，涵盖更新器语义版本、请求安全性、严格工具配额与审计模式 (#29)。
+
 ## v0.2.4 更新日志
  
 - **设置界面**：修复 `maxToolAttemptsPerTurn` 保存为 `0` 的问题，允许正常禁用单回合工具调用上限 (#28)。
