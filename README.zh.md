@@ -182,6 +182,11 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
  
 ---
  
+## v0.2.6 更新日志
+
+- **浏览器 ModuleLoader 导入修复**：在 `lib/client.js` 的 factory 函数中显式声明 `var exports = module.exports;`，彻底修复 DSH 网页端 ModuleLoader 动态加载时抛出的 `ReferenceError: exports is not defined` 异常 (#31)。
+- **客户端测试用例**：新增 `test/client.test.js`，通过 Node.js VM 模拟浏览器端模块加载环境并自动化验证 (#31)。
+
 ## v0.2.5 更新日志
 
 - **一键平滑更新**：集成宿主端更新器（`lib/plugin-updater.js`），提供 `/api/@goodandready/dsh-agent-loop-guard/update` 接口与设置界面更新状态/按钮 (#29)。
