@@ -191,6 +191,27 @@ npm run check
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+## Changed in v0.2.8
+
+- **Host & Security Engine Hardening**:
+  - Expanded stop keyword detector with Russian keyword `'стоп'` for multilingual interrupt safety (#43).
+  - Enforced loopback and same-origin validation on `/telemetry` endpoint (#37).
+  - Eliminated dead `if(true)` branch and unused `releaseCall` method in core guard engine (#44).
+  - Deprecated legacy alias `maxCallsPerToolPerTurn` in configuration schema per standard (#48).
+  - Replaced empty catch blocks with structured debug logging via `ctx.logger('loop-guard')` (#49).
+- **WebUI Client & Design System Alignment**:
+  - Aligned settings card with DSH standard CSS variables `--dsw-alias-*` and primitive chevron icon with smooth 180° rotation (#39).
+  - Removed emoji headers (`🛑`, `📊`) for a clean, professional interface (#39).
+  - Fixed localization reactivity by resolving locale from `ctx.locale.getLocale()` and registering within `ctx.effect` lifecycle (#40, #41).
+  - Removed hardcoded version strings; version is dynamically verified from updater endpoint (#42).
+  - Enhanced accessibility: all form controls now link `<label>` with `<input>` using `htmlFor` and explicit IDs (#45).
+  - Added robust HTTP error checking (`res.ok`) and user-facing error indicators for updater and telemetry actions (#49).
+- **Distribution & Repository Hygiene**:
+  - Cleaned repository root from temporary tarballs and pruned 15 merged branches (#46).
+  - Removed internal planning and architectural documentation from the public package (#35, #36).
+  - Documented canonical updater architecture and rationale in `DESIGN.md` (#47).
+  - Full automated test suite expanded to 49 comprehensive unit and integration tests.
+
 ## Changed in v0.2.7
 
 - **Deferred Slot Injection**: wrapped `settings.plugin.item` registration in `registerSlotWhenReady` with `ctx.slots.inject` to prevent `slot "settings.plugin.item" is not declared` crash during early plugin initialization (#33).

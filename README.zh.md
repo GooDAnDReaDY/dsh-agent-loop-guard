@@ -183,6 +183,27 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
  
 ---
  
+## v0.2.8 更新日志
+
+- **服务端引擎与安全强化**：
+  - 停止关键词识别器支持俄语关键词 `'стоп'`，增强跨语言安全熔断保护 (#43)。
+  - `/telemetry` 接口严格强制本地环回 (loopback) 与同源 (same-origin) 校验 (#37)。
+  - 移除核心防护引擎中的冗余 `if(true)` 代码块与未使用的 `releaseCall` 方法 (#44)。
+  - 在配置模型中将旧版别名 `maxCallsPerToolPerTurn` 规范标记为 deprecated 弃用 (#48)。
+  - 将空异常捕获代码块替换为结构化调试日志 `ctx.logger('loop-guard')` (#49)。
+- **WebUI 客户端与设计规范对齐**：
+  - 设置卡片完全适配 DSH 规范 CSS 变量 `--dsw-alias-*`，并采用原生 Chevron 图标（带 180° 展开旋转动效）(#39)。
+  - 移除标题表情符号（`🛑`、`📊`），符合沉稳的原生界面风格 (#39)。
+  - 修复语言切换响应性：通过 `ctx.locale.getLocale()` 获取语言快照并在 `ctx.effect` 生命周期内正确注册 (#40, #41)。
+  - 移除硬编码版本号，版本信息通过更新接口动态验证 (#42)。
+  - 可访问性强化：所有表单控件通过 `htmlFor` 与显式 ID 绑定 `<label>` 与 `<input>` (#45)。
+  - 完善网络请求验证 (`res.ok`)，在更新与遥测接口异常时向用户展示友好错误提示 (#49)。
+- **发布规范与仓库清理**：
+  - 清理根目录残留 `.tgz` 打包产物，安全删除 15 个已合入的陈旧分支 (#46)。
+  - 从公开发布包中剔除内部架构与规划文档 (#35, #36)。
+  - 在 `DESIGN.md` 中规范记录更新器架构与设计决策 (#47)。
+  - 全自动化测试集扩充至 49 个单元与集成测试。
+
 ## v0.2.7 更新日志
 
 - **延迟插槽注入机制**：使用 `registerSlotWhenReady` 与 `ctx.slots.inject` 包装 `settings.plugin.item` 注册逻辑，防止插件在浏览器前端初始化时因插槽未提前声明而抛出 `slot "settings.plugin.item" is not declared` 崩溃异常 (#33)。
