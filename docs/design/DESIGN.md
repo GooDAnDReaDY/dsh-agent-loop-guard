@@ -16,7 +16,8 @@
     - Форма параметров: числовые поля (`maxToolAttemptsPerTurn`, `maxProgressToolCallsPerTurn`, `maxCallsPerRepeatGroup`, `maxCallsPerToolPerTurn`, `maxRepeatedAssistantLines`, `maxRepeatedAssistantBlocks`, `maxAssistantBlockChars`), чекбоксы (`blockExactDuplicates`, `assistantOutputGuard`, `dryRunMode`), текстовые списки (`progressToolNames`, `strictTools`).
     - Кнопка сохранения с индикацией статуса (`Saving...`, `Saved`, ошибки валидации).
 - **API:**
-  - Route: `/api/@goodandready/dsh-agent-loop-guard/update` (GET — статус версий, POST — доверенное обновление).
+  - Route: `/api/@goodandready/dsh-agent-loop-guard/update` (GET — статус версий, POST — доверенное обновление с обязательной проверкой x-dsh-plugin-update, loopback и same-origin).
+  - Route: `/api/@goodandready/dsh-agent-loop-guard/telemetry` (GET — данные телеметрии петлезащиты для loopback/same-origin; POST — доверенный сброс счётчиков с проверкой loopback remoteAddress, sec-fetch-site и совпадения origin/host, 403 при cross-origin или не-loopback).
 - **CLI:**
   - Установка и обновление через штатный DSH CLI: `dsh plugin --profile web add @goodandready/dsh-agent-loop-guard`.
 - **Документация:**

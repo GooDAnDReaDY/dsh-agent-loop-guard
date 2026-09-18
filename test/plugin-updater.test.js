@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNewerVersion, isTrustedUpdateRequest } from '../lib/plugin-updater.js';
+import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest } from '../lib/plugin-updater.js';
 
 test('isNewerVersion handles core semver and prereleases correctly', () => {
   assert.equal(isNewerVersion('0.2.4', '0.2.5'), true);
@@ -47,6 +47,69 @@ test('isTrustedUpdateRequest enforces x-dsh-plugin-update and loopback origins',
       'sec-fetch-site': 'same-origin',
       host: '127.0.0.1:3080',
       origin: 'http://127.0.0.1:3080',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), true);
+});
+
+test('isTrustedTelemetryRequest enforces loopback and same-origin validation', () => {
+  // Non-loopback remote address
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '192.168.1.111:3080' },
+    socket: { remoteAddress: '192.168.1.50' },
+  }), false);
+
+  // Cross-site sec-fetch-site
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { 'sec-fetch-site': 'cross-site' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
+
+  // Valid GET from loopback
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { 'sec-fetch-site': 'same-origin', host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), true);
+
+  // POST without origin
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
+
+  // Cross-origin POST (attacker site)
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      origin: 'http://malicious-site.com',
+      host: '127.0.0.1:3080',
+      'sec-fetch-site': 'cross-site',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
+
+  // Cross-origin POST with fake host header
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      origin: 'http://malicious-site.com',
+      host: 'malicious-site.com',
+      'sec-fetch-site': 'same-origin',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
+
+  // Valid same-origin POST from loopback
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      origin: 'http://127.0.0.1:3080',
+      host: '127.0.0.1:3080',
+      'sec-fetch-site': 'same-origin',
     },
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
