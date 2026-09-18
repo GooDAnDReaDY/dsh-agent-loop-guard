@@ -101,7 +101,7 @@ When a loop is detected, the guard rejects the call with structured diagnostics 
 
 | Guard Code | Trigger Condition | Default Limit | Guard Action |
 |:---|:---|:---|:---|
-| `LOOP_GUARD_STOP` | User sent stop command (`stop`, `halt`, `cancel`, `остановись`, `прекрати`, `ответь`, `петля`) | Immediate | Rejects tool call; requires immediate text reply |
+| `LOOP_GUARD_STOP` | User sent stop command (`stop`, `halt`, `cancel`, `стоп`, `остановись`, `прекрати`, `ответь`, `петля`) | Immediate | Rejects tool call; requires immediate text reply |
 | `LOOP_GUARD_DUPLICATE` | Identical call arguments with identical result to previous attempt | 1 retry | Blocks exact repeat; demands alternative approach |
 | `LOOP_GUARD_REPEAT` | Repeated calls within current group without state change | `maxCallsPerRepeatGroup` (5) | Prevents spinning on single tool |
 | `LOOP_GUARD_LIMIT` | Total non-productive tool attempts since last successful progress | `maxToolAttemptsPerTurn` (64) | Caps turn exploratory budget |

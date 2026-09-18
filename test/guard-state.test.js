@@ -171,6 +171,24 @@ test('non-array user content is safe', () => {
   assert.equal(hasStopRequest([{ source: { kind: 'user' }, content: 'stop' }]), false);
 });
 
+test('stop request recognizes all policy keywords and ignores neutral text', () => {
+  const userMsg = (text) => [{ source: { kind: 'user' }, content: [{ text }] }];
+  const positive = [
+    'стоп', 'Стоп!', 'СТОП', 'остановись', 'остановить',
+    'прекрати', 'хватит', 'ответь', 'петля', 'stop', 'STOP'
+  ];
+  for (const word of positive) {
+    assert.equal(hasStopRequest(userMsg(word)), true, `expected "${word}" to be recognized as stop request`);
+  }
+
+  const neutral = [
+    'остановка сервиса', 'стоп-кран', 'пистолет', 'стопка документов', 'стоп-сигнал'
+  ];
+  for (const text of neutral) {
+    assert.equal(hasStopRequest(userMsg(text)), false, `expected "${text}" to NOT be recognized as stop request`);
+  }
+});
+
 test('safe integer limits accept zero only for the aggregate cap', () => {
   assert.equal(positiveInteger(3, 8), 3);
   assert.equal(positiveInteger(0, 8), 8);
