@@ -439,3 +439,59 @@ test('client telemetry and update state handle network failures cleanly', async 
   assert.ok(telemetryState, 'Telemetry state should exist');
   assert.equal(telemetryState.error, 'Failed to load telemetry');
 });
+
+test('card markup aligns with DSH standard CSS classes, primitives chevron and lacks emoji', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  assert.equal(clientCode.includes("'🛑 '"), false, 'client.js should not contain 🛑 emoji in title');
+  assert.equal(clientCode.includes("'📊 '"), false, 'client.js should not contain 📊 emoji in telemetry title');
+  assert.ok(clientCode.includes('.alg-card'), 'client.js should define .alg-card style');
+  assert.ok(clientCode.includes('.alg-chevron'), 'client.js should define .alg-chevron style');
+
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const createdElements = [];
+  const mockReact = {
+    createElement: (type, props, ...children) => {
+      const el = { type, props: props || {}, children };
+      createdElements.push(el);
+      return el;
+    },
+    isValidElement: (el) => el && typeof el === 'object' && 'type' in el && 'props' in el,
+    cloneElement: (el, newProps) => {
+      const cloned = { ...el, props: { ...el.props, ...newProps } };
+      createdElements.push(cloned);
+      return cloned;
+    },
+    useState: (init) => [init, () => {}],
+    useEffect: () => {},
+    useRef: () => ({ current: null }),
+  };
+
+  const factoryExports = loadedModule.factory(() => mockReact);
+  const mockCtx = {
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => { capturedComponent = comp; },
+    },
+  };
+
+  factoryExports.apply(mockCtx);
+  const element = capturedComponent({ ctx: mockCtx });
+  element.type(element.props);
+
+  const cardElement = createdElements.find((el) => el.type === 'li' && el.props.className === 'alg-card');
+  assert.ok(cardElement, 'Plugin card must render with alg-card class');
+
+  const headerBtn = createdElements.find((el) => el.type === 'button' && el.props.className === 'alg-header-btn');
+  assert.ok(headerBtn, 'Header button must render with alg-header-btn class');
+
+  const chevron = createdElements.find((el) => el.props && typeof el.props.className === 'string' && el.props.className.includes('alg-chevron'));
+  assert.ok(chevron, 'Chevron icon must render with alg-chevron class');
+});
