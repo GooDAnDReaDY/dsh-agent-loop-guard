@@ -13,7 +13,7 @@
     - Заголовок с иконкой и версионным бейджем.
     - Секция One-Click обновления (индикатор проверки, кнопка «Update Now» при наличии новой версии в npm).
     - Секция телеметрии живой защиты (счётчики заблокированных петель сессии).
-    - Форма параметров: числовые поля (`maxToolAttemptsPerTurn`, `maxProgressToolCallsPerTurn`, `maxCallsPerRepeatGroup`, `maxCallsPerToolPerTurn`, `maxRepeatedAssistantLines`, `maxRepeatedAssistantBlocks`, `maxAssistantBlockChars`), чекбоксы (`blockExactDuplicates`, `assistantOutputGuard`, `dryRunMode`), текстовые списки (`progressToolNames`, `strictTools`).
+    - Форма параметров: числовые поля (`maxToolAttemptsPerTurn`, `maxProgressToolCallsPerTurn`, `maxCallsPerRepeatGroup`, `maxRepeatedAssistantLines`, `maxRepeatedAssistantBlocks`, `maxAssistantBlockChars`; устаревший алиас `maxCallsPerToolPerTurn` сохранён в схеме для обратной совместимости, но опущен в UI), чекбоксы (`blockExactDuplicates`, `assistantOutputGuard`, `dryRunMode`), текстовые списки (`progressToolNames`, `strictTools`).
     - Кнопка сохранения с индикацией статуса (`Saving...`, `Saved`, ошибки валидации).
 - **API:**
   - Route: `/api/@goodandready/dsh-agent-loop-guard/update` (GET — статус версий, POST — доверенное обновление с обязательной проверкой x-dsh-plugin-update, loopback и same-origin).

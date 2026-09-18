@@ -156,6 +156,7 @@ dsh-agent-loop-guard:
 | `maxProgressToolCallsPerTurn` | `number` | `16` | Максимум вызовов progress-инструментов (`todo_write`) подряд без изменений. |
 | `progressToolNames` | `array` | `["todo_write"]` | Список имён инструментов, маркирующих прогресс задач. |
 | `maxCallsPerRepeatGroup` | `number` | `5` | Максимум повторений инструментов одной группы без смены результата. |
+| `maxCallsPerToolPerTurn` | `number` | `5` | *(Устарело)* Устаревший алиас для `maxCallsPerRepeatGroup`. При указании обоих параметров приоритет имеет `maxCallsPerRepeatGroup`. В UI-карточке опущен во избежание дублирования. |
 | `strictTools` | `array` | `[]` | Список имён инструментов с пониженным лимитом повторов (например, изменяющие файлы/состояние). |
 | `strictToolLimit` | `number` | `3` | Максимальный лимит повторов для инструментов из списка `strictTools`. |
 | `blockExactDuplicates` | `boolean` | `true` | Немедленно блокировать повторные идентичные вызовы без изменения состояния. |

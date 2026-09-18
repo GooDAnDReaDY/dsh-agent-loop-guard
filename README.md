@@ -164,6 +164,7 @@ dsh-agent-loop-guard:
 | `maxProgressToolCallsPerTurn` | `number` | `16` | Maximum consecutive calls to progress tools (`todo_write`) without substantive progress. |
 | `progressToolNames` | `array` | `["todo_write"]` | Array of tool names considered progress markers. |
 | `maxCallsPerRepeatGroup` | `number` | `5` | Maximum tool calls allowed within the same repeat group without producing a new result. |
+| `maxCallsPerToolPerTurn` | `number` | `5` | *(Deprecated)* Legacy alias for `maxCallsPerRepeatGroup`. If both are specified, `maxCallsPerRepeatGroup` takes precedence. Omitted from UI card to avoid confusion. |
 | `strictTools` | `array` | `[]` | Array of tool names subjected to lower repeat tolerance (e.g. mutating tools). |
 | `strictToolLimit` | `number` | `3` | Maximum repeat count allowed for tools specified in `strictTools`. |
 | `blockExactDuplicates` | `boolean` | `true` | Immediately block consecutive identical calls with zero state change. |

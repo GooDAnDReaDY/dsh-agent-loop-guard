@@ -154,6 +154,7 @@ dsh-agent-loop-guard:
 | `maxProgressToolCallsPerTurn` | `number` | `16` | 进度标记工具（`todo_write`）连续无进展调用的上限。 |
 | `progressToolNames` | `array` | `["todo_write"]` | 标记任务进度的工具名称数组。 |
 | `maxCallsPerRepeatGroup` | `number` | `5` | 同一组工具未产生新结果时允许调用的最大次数。 |
+| `maxCallsPerToolPerTurn` | `number` | `5` | *(已废弃)* `maxCallsPerRepeatGroup` 的向后兼容别名。两者同时存在时优先使用 `maxCallsPerRepeatGroup`。UI 卡片中有意隐藏以避免混淆。 |
 | `strictTools` | `array` | `[]` | 受到更严格重复调用限制的敏感/修改类工具名称列表。 |
 | `strictToolLimit` | `number` | `3` | `strictTools` 列表中工具的最大允许重复次数。 |
 | `blockExactDuplicates` | `boolean` | `true` | 是否立即拦截结果毫无变化的连续相同调用。 |
