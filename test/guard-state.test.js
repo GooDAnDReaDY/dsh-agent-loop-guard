@@ -67,7 +67,7 @@ test('a denied edit can be retried after read produces a new result', () => {
   const state = new LoopGuardState({ ...config, maxToolAttemptsPerTurn: 2 });
   state.beginTurn('agent-4', 1, false);
   assert.equal(state.denyReason('agent-4', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-1'), undefined);
-  state.releaseCall('agent-4', 'edit-1');
+  state.recordResult('agent-4', { callId: 'edit-1' });
   accept(state, 'agent-4', 'read', { path: 'package.json' }, 'read-1', { sha: 'a' });
   assert.equal(state.denyReason('agent-4', 'edit', { path: 'package.json', oldText: 'a', newText: 'b' }, 'edit-2'), undefined);
 });
