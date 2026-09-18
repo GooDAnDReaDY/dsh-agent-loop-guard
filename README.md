@@ -191,6 +191,13 @@ npm run check
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+## Changed in v0.2.9
+
+- **Theme Guard & Token Integrity**: eliminated 100% of hardcoded hex and rgba colors from `lib/client.js` in both CSS styles and JSX inline markup, switching entirely to DSH design tokens (`var(--dsw-alias-*)`) and `color-mix(in srgb, ...)`; added automated regression test `test/theme-guard.test.js` enforcing zero hex/rgba literals (#53, #39).
+- **Updater Resilience**: hardened `currentVersion` and status endpoint against corrupted, non-JSON or missing manifests, returning safe fallback status without throwing unhandled exceptions (#47).
+- **Distribution & Package Hygiene**: removed internal `docs` directory from npm distribution package `files` whitelist; added diagnostic warning with `bestEffort` annotation to client primitives loader; pruned stale branches and worktrees (#54).
+- **Test Suite**: expanded to 51 automated tests covering theme token compliance and manifest corruption handling.
+
 ## Changed in v0.2.8
 
 - **Host & Security Engine Hardening**:

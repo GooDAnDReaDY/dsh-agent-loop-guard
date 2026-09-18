@@ -183,6 +183,13 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
  
 ---
  
+## v0.2.9 更新日志
+
+- **设计规范与主题守卫**：彻底移除 `lib/client.js` 中 CSS 与 JSX 内联样式的所有硬编码十六进制与 rgba 颜色，全面接入 DSH 官方设计变量（`var(--dsw-alias-*)` 与 `color-mix(in srgb, ...)`）；新增自动化守卫测试 `test/theme-guard.test.js`，严格确保客户端零硬编码颜色 (#53, #39)。
+- **更新器容错防护**：对 `currentVersion` 与更新状态端点的清单解析增加 `try/catch` 保护，防止损坏的非 JSON 清单导致未捕获异常 (#47)。
+- **包体精简与清理**：从 `package.json` 的 `files` 白名单中移除 `docs` 目录，防止内部文档打包至 npm 发行包中；客户端 primitives 加载处的空 catch 替换为具备 `bestEffort` 注释的诊断警告；清理已合并分支与过期 worktrees (#54)。
+- **自动化测试**：测试集扩展至 51 个单元与集成测试。
+
 ## v0.2.8 更新日志
 
 - **服务端引擎与安全强化**：
