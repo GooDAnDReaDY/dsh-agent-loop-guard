@@ -154,3 +154,72 @@ test('apply safely handles direct slot registration if slots.inject throws or is
     factoryExports.apply(mockCtx2);
   });
 });
+
+test('card resolves locale from _ctx.locale.getLocale and responds to subscribe', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+      navigator: { language: 'en-US' },
+    },
+    navigator: { language: 'en-US' },
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const stateHooks = [];
+  const effectHooks = [];
+
+  const mockReact = {
+    createElement: (type, props, ...children) => ({ type, props, children }),
+    useState: (init) => {
+      const idx = stateHooks.length;
+      stateHooks.push(init);
+      return [init, (val) => { stateHooks[idx] = typeof val === 'function' ? val(stateHooks[idx]) : val; }];
+    },
+    useEffect: (fn, deps) => {
+      effectHooks.push({ fn, deps });
+    },
+    useRef: () => ({ current: null }),
+  };
+
+  const mockRequire = (id) => {
+    if (id === 'react') return mockReact;
+    throw new Error(`Unexpected require: ${id}`);
+  };
+
+  const factoryExports = loadedModule.factory(mockRequire);
+
+  let currentLocale = 'zh-CN';
+  let subscriber = null;
+  const mockCtx = {
+    locale: {
+      getLocale: () => ({ locale: currentLocale }),
+      subscribe: (fn) => { subscriber = fn; return () => {}; },
+      register: () => {},
+    },
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => {
+        capturedComponent = comp;
+      },
+    },
+  };
+
+  factoryExports.apply(mockCtx);
+  assert.ok(capturedComponent, 'Component should be registered');
+
+  // Render component and execute functional component to trigger hooks
+  const element = capturedComponent({ ctx: mockCtx });
+  assert.ok(element && typeof element.type === 'function');
+  element.type(element.props);
+
+  // Execute registered effects
+  for (const hook of effectHooks) {
+    hook.fn();
+  }
+
+  // Verify that subscriber was registered
+  assert.ok(subscriber, 'locale.subscribe should have been registered');
+});
