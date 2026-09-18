@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.11] - 2026-09-18
+
+- **Settings reachable again**: the settings card registered into
+  `settings.plugin.item`, a slot the current DSH core no longer renders, so the
+  guard's settings were unreachable. The surface now registers into the Plugins
+  page row seat `plugins.row.config`, keyed
+  `@goodandready/dsh-agent-loop-guard#@goodandready/dsh-agent-loop-guard` (row id
+  as `cordis.patch.yml` declares it): the plugin's row gains a configure control
+  whose page is the settings form (`view: 'page'`, rendered bare — `PluginCard`
+  accepts a `bare` prop and drops the card chrome because the host page draws the
+  title, icon, crumb and padding) plus a one-line state under the title
+  (`view: 'summary'`). The legacy seat stays registered as a fallback for older
+  cores.
+- **Row-seat guard** (`test/row-config-seat.test.js`): checks the row key against
+  `package.json` and `cordis.patch.yml`, the seat order (row seat first) and the
+  bare page render.
+
 ## [0.2.10] - 2026-09-18
 
 - **Documentation & Packaging Architecture**:
