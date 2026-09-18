@@ -321,3 +321,62 @@ test('client.js does not hardcode version strings and renders honest initial bad
   const rendered = element.type(element.props);
   assert.ok(rendered);
 });
+
+test('field helper associates label with input using htmlFor and id', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const createdElements = [];
+  let stateIndex = 0;
+  const mockReact = {
+    createElement: (type, props, ...children) => {
+      const el = { type, props: props || {}, children };
+      createdElements.push(el);
+      return el;
+    },
+    isValidElement: (el) => el && typeof el === 'object' && 'type' in el && 'props' in el,
+    cloneElement: (el, newProps) => {
+      const cloned = { ...el, props: { ...el.props, ...newProps } };
+      createdElements.push(cloned);
+      return cloned;
+    },
+    useState: (init) => {
+      // First hook is expanded -> set to true
+      const val = stateIndex === 0 ? true : init;
+      stateIndex += 1;
+      return [val, () => {}];
+    },
+    useEffect: () => {},
+    useRef: () => ({ current: null }),
+  };
+
+  const factoryExports = loadedModule.factory(() => mockReact);
+  const mockCtx = {
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => { capturedComponent = comp; },
+    },
+  };
+
+  factoryExports.apply(mockCtx);
+  const element = capturedComponent({ ctx: mockCtx });
+  element.type(element.props);
+
+  const labels = createdElements.filter((el) => el.type === 'label' && el.props.htmlFor);
+  const inputs = createdElements.filter((el) => el.type === 'input' && el.props.id);
+
+  assert.ok(labels.length > 0, 'Form should render labels with htmlFor');
+  assert.ok(inputs.length > 0, 'Form should render inputs with id');
+
+  for (const label of labels) {
+    const matchingInput = inputs.find((inp) => inp.props.id === label.props.htmlFor);
+    assert.ok(matchingInput, `Label htmlFor="${label.props.htmlFor}" must match an input with that id`);
+  }
+});
