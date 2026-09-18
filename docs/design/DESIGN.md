@@ -86,6 +86,12 @@
   5. DSH CLI устанавливает точную версию. Кнопка блокируется от повторных кликов.
   6. Интерфейс сообщает: `Updated successfully. Restart DSH service to apply changes.`.
 
+## Architecture & Reusable Components
+- **Plugin Updater (`lib/plugin-updater.js`):**
+  - Реализация основана на каноническом шаблоне `references/plugin-updater.ts` с поддержкой безопасной проверки версий semver, loopback/same-origin валидации и флага `x-dsh-plugin-update`.
+  - Маршрут эндпоинта зафиксирован как `/api/@goodandready/dsh-agent-loop-guard/update` (совпадает с полным именем npm-пакета плагина для изоляции пространства имён роутера DSH Web).
+  - Флаг `--config.minimumReleaseAge=0` задействован в CLI-командах установки для предотвращения задержек распространения новых npm-релизов в локальной среде pnpm.
+
 ## Internationalization & Localization (Do / Don't)
 - **Do:**
   - Код плагина, схемы настроек, логи и системные сообщения — **English (`en`)**.
