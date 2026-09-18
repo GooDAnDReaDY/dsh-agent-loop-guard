@@ -223,3 +223,66 @@ test('card resolves locale from _ctx.locale.getLocale and responds to subscribe'
   // Verify that subscriber was registered
   assert.ok(subscriber, 'locale.subscribe should have been registered');
 });
+
+test('locale is registered inside ctx.effect and cleanup function is handled on re-apply', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  const mockRequire = () => ({
+    createElement: () => ({}),
+    useState: (init) => [init, () => {}],
+    useEffect: () => {},
+    useRef: () => ({ current: null }),
+  });
+
+  const factoryExports = loadedModule.factory(mockRequire);
+
+  const registeredLocales = new Map();
+  const effects = [];
+
+  const mockCtx = {
+    effect: (fn, label) => {
+      const cleanup = fn();
+      effects.push({ cleanup, label });
+    },
+    locale: {
+      register: (ns, dicts) => {
+        if (registeredLocales.has(ns)) {
+          throw new Error(`Locale namespace "${ns}" already registered`);
+        }
+        registeredLocales.set(ns, dicts);
+        return () => {
+          registeredLocales.delete(ns);
+        };
+      },
+    },
+    slots: {
+      inject: () => {},
+      register: () => {},
+    },
+  };
+
+  // First apply
+  assert.doesNotThrow(() => {
+    factoryExports.apply(mockCtx);
+  });
+  assert.equal(effects.length, 1);
+  assert.equal(effects[0].label, 'dsh-agent-loop-guard: locale');
+  assert.equal(registeredLocales.has('@goodandready/dsh-agent-loop-guard'), true);
+
+  // Simulate HMR/re-apply: dispose effect then apply again
+  effects[0].cleanup();
+  assert.equal(registeredLocales.has('@goodandready/dsh-agent-loop-guard'), false);
+
+  // Second apply succeeds without error
+  assert.doesNotThrow(() => {
+    factoryExports.apply(mockCtx);
+  });
+  assert.equal(registeredLocales.has('@goodandready/dsh-agent-loop-guard'), true);
+});
