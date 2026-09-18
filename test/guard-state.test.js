@@ -301,4 +301,23 @@ test('actionable guidance is returned on duplicate rejection', () => {
   assert.match(reason, /Stop repeating this action/);
 });
 
+test('onViolation callback errors are safely caught and logged via logger.debug', () => {
+  const logs = [];
+  const fakeLogger = {
+    debug: (msg) => logs.push(msg),
+  };
+  const state = new LoopGuardState({
+    ...config,
+    logger: fakeLogger,
+    onViolation: () => {
+      throw new Error('boom');
+    },
+  });
+  state.beginTurn('agent-err', 1, true);
+  const reason = state.denyReason('agent-err', 'tool', { a: 1 }, 'c1');
+  assert.ok(reason);
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /onViolation callback failed: boom/);
+});
+
 
