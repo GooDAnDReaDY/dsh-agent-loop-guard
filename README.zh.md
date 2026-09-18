@@ -113,6 +113,19 @@ graph TD
 * **长耗时工具豁免**：在工具实际执行期间，文本中断检测自动保持静默，避免长任务被误杀。
 * **用户输入无损重置**：用户发起新对话轮次时，检测状态自动全量清理重置。
 
+### 4. 凭证脱敏与日志隐私防护
+
+所有防护告警日志均会自动针对敏感凭证执行脱敏处理：
+* Bearer 令牌、密码、Cookie 与查询参数凭据（`token=`, `api-key=`, `secret=`）在写入日志前一律替换为 `[redacted]`。
+* 对深度嵌套的参数对象执行深度与宽度截断，杜绝超大 JSON 解析引发的内存泄漏。
+
+### 5. 原生 WebUI 设置卡片、实时防护遥测与一键平滑更新
+
+* **原生设置面板集成**：直接内嵌于 DSH Web 控制台「设置 ➔ 插件 ➔ 插件设置」卡片列表中（`settings.plugin.item`, order 95）。
+* **对齐 DSH 设计规范**：完全基于 DSH 标准设计令牌变量（`--dsw-alias-*`）与无障碍标签绑定（`htmlFor`/`id`），搭配轻量级平滑展开 Chevron 图标，零外部重型 UI 库依赖。
+* **实时防护遥测看板**：在设置卡片中直观呈现当前运行时拦截的死循环总数（`LOOP_GUARD_DUPLICATE`, `LOOP_GUARD_REPEAT`, `LOOP_GUARD_LIMIT`, `LOOP_GUARD_OUTPUT`），支持通过 `/api/@goodandready/dsh-agent-loop-guard/telemetry` 安全端点一键重置计数。
+* **一键无缝在线更新**：卡片自动联动 npm 官方源检查最新版本，支持通过经过鉴权的本地环回 API（`/api/@goodandready/dsh-agent-loop-guard/update`）在后台安全完成版本升级。
+
 ---
 
 ## 📦 快速安装
@@ -168,7 +181,7 @@ dsh-agent-loop-guard:
 
 ## 🧪 测试与校验
  
-运行全部 37 个自动化单元测试及静态代码检查：
+运行全部 51 个自动化单元与集成测试及静态代码检查：
  
 ```bash
 npm test
@@ -179,64 +192,5 @@ npm run check
  
 ## 📄 开源许可证
  
-MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
- 
----
- 
-## v0.2.9 更新日志
-
-- **设计规范与主题守卫**：彻底移除 `lib/client.js` 中 CSS 与 JSX 内联样式的所有硬编码十六进制与 rgba 颜色，全面接入 DSH 官方设计变量（`var(--dsw-alias-*)` 与 `color-mix(in srgb, ...)`）；新增自动化守卫测试 `test/theme-guard.test.js`，严格确保客户端零硬编码颜色 (#53, #39)。
-- **更新器容错防护**：对 `currentVersion` 与更新状态端点的清单解析增加 `try/catch` 保护，防止损坏的非 JSON 清单导致未捕获异常 (#47)。
-- **包体精简与清理**：从 `package.json` 的 `files` 白名单中移除 `docs` 目录，防止内部文档打包至 npm 发行包中；客户端 primitives 加载处的空 catch 替换为具备 `bestEffort` 注释的诊断警告；清理已合并分支与过期 worktrees (#54)。
-- **自动化测试**：测试集扩展至 51 个单元与集成测试。
-
-## v0.2.8 更新日志
-
-- **服务端引擎与安全强化**：
-  - 停止关键词识别器支持俄语关键词 `'стоп'`，增强跨语言安全熔断保护 (#43)。
-  - `/telemetry` 接口严格强制本地环回 (loopback) 与同源 (same-origin) 校验 (#37)。
-  - 移除核心防护引擎中的冗余 `if(true)` 代码块与未使用的 `releaseCall` 方法 (#44)。
-  - 在配置模型中将旧版别名 `maxCallsPerToolPerTurn` 规范标记为 deprecated 弃用 (#48)。
-  - 将空异常捕获代码块替换为结构化调试日志 `ctx.logger('loop-guard')` (#49)。
-- **WebUI 客户端与设计规范对齐**：
-  - 设置卡片完全适配 DSH 规范 CSS 变量 `--dsw-alias-*`，并采用原生 Chevron 图标（带 180° 展开旋转动效）(#39)。
-  - 移除标题表情符号（`🛑`、`📊`），符合沉稳的原生界面风格 (#39)。
-  - 修复语言切换响应性：通过 `ctx.locale.getLocale()` 获取语言快照并在 `ctx.effect` 生命周期内正确注册 (#40, #41)。
-  - 移除硬编码版本号，版本信息通过更新接口动态验证 (#42)。
-  - 可访问性强化：所有表单控件通过 `htmlFor` 与显式 ID 绑定 `<label>` 与 `<input>` (#45)。
-  - 完善网络请求验证 (`res.ok`)，在更新与遥测接口异常时向用户展示友好错误提示 (#49)。
-- **发布规范与仓库清理**：
-  - 清理根目录残留 `.tgz` 打包产物，安全删除 15 个已合入的陈旧分支 (#46)。
-  - 从公开发布包中剔除内部架构与规划文档 (#35, #36)。
-  - 在 `DESIGN.md` 中规范记录更新器架构与设计决策 (#47)。
-  - 全自动化测试集扩充至 49 个单元与集成测试。
-
-## v0.2.7 更新日志
-
-- **延迟插槽注入机制**：使用 `registerSlotWhenReady` 与 `ctx.slots.inject` 包装 `settings.plugin.item` 注册逻辑，防止插件在浏览器前端初始化时因插槽未提前声明而抛出 `slot "settings.plugin.item" is not declared` 崩溃异常 (#33)。
-- **插槽规范对齐**：根据 `dsh-plugin-authoring` 标准，将插槽注册参数调整为 `key: NS` 并注入 `inject: () => ({ ctx })` (#33)。
-- **客户端自动化测试**：扩展 `test/client.test.js`，全面验证插槽延迟注入逻辑与缺失回退机制 (#33)。
-
-## v0.2.6 更新日志
-
-- **浏览器 ModuleLoader 导入修复**：在 `lib/client.js` 的 factory 函数中显式声明 `var exports = module.exports;`，彻底修复 DSH 网页端 ModuleLoader 动态加载时抛出的 `ReferenceError: exports is not defined` 异常 (#31)。
-- **客户端测试用例**：新增 `test/client.test.js`，通过 Node.js VM 模拟浏览器端模块加载环境并自动化验证 (#31)。
-
-## v0.2.5 更新日志
-
-- **一键平滑更新**：集成宿主端更新器（`lib/plugin-updater.js`），提供 `/api/@goodandready/dsh-agent-loop-guard/update` 接口与设置界面更新状态/按钮 (#29)。
-- **敏感工具严格配额**：新增 `strictTools` 与 `strictToolLimit` 配置，强化对高危/文件修改工具的重复调用限制 (#29)。
-- **审计模式 (Dry-Run)**：新增 `dryRunMode` 配置，支持在不阻断智能体调用的前提下记录告警与度量数据 (#29)。
-- **防护遥测与监控**：实时统计拦截指标（`LOOP_GUARD_DUPLICATE`, `LOOP_GUARD_REPEAT`, `LOOP_GUARD_LIMIT`, `LOOP_GUARD_OUTPUT`），提供 `/api/@goodandready/dsh-agent-loop-guard/telemetry` 接口与一键重置 (#29)。
-- **LLM 智能恢复引导**：在拦截消息中为 DeepSeek-R1 / V3 等模型提供结构化的破局指导与操作建议 (#29)。
-- **严格多语言规范**：代码库仅保留标准英文（`en`）与中文（`zh`），俄语本地化转入 Issue #197 (`goodandready/dsh-russian-lang`) 处理 (#29)。
-- **设计契约**：按照 `project-design-contract` 标准建立 `docs/design/DESIGN.md` (#29)。
-- **扩展自动化测试**：总测试用例扩充至 37 个，涵盖更新器语义版本、请求安全性、严格工具配额与审计模式 (#29)。
-
-## v0.2.4 更新日志
- 
-- **设置界面**：修复 `maxToolAttemptsPerTurn` 保存为 `0` 的问题，允许正常禁用单回合工具调用上限 (#28)。
-- **结果解析**：对象中的 `{ error: null }` 与 `{ error: false }` 正确识别为非错误，不再阻碍进展推进 (#28)。
-- **交替循环拦截**：通过 `state.lastResults` 跟踪每个工具的先前结果，有效拦截无实质进展的交替循环调用 (A ➔ B ➔ A ➔ B) (#28)。
-- **设置卡片**：集成标准 `settings.plugin.item` 配置卡片，支持动态热重载 (#26)。
-- **测试用例**：自动化测试扩展至 31 个测试。
+* **开源许可证**: MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
+* **更新历史**: 完整版本演进历史与特性发布记录详见 [CHANGELOG.md](CHANGELOG.md)。
