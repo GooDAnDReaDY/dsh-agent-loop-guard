@@ -286,3 +286,38 @@ test('locale is registered inside ctx.effect and cleanup function is handled on 
   });
   assert.equal(registeredLocales.has('@goodandready/dsh-agent-loop-guard'), true);
 });
+
+test('client.js does not hardcode version strings and renders honest initial badge', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  assert.equal(clientCode.includes("'0.2.5'"), false, 'client.js must not contain hardcoded 0.2.5 version string');
+  assert.equal(clientCode.includes('"0.2.5"'), false, 'client.js must not contain hardcoded "0.2.5" version string');
+
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const mockRequire = () => ({
+    createElement: (type, props, ...children) => ({ type, props, children }),
+    useState: (init) => [init, () => {}],
+    useEffect: () => {},
+    useRef: () => ({ current: null }),
+  });
+
+  const factoryExports = loadedModule.factory(mockRequire);
+  const mockCtx = {
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => { capturedComponent = comp; },
+    },
+  };
+
+  factoryExports.apply(mockCtx);
+  const element = capturedComponent({ ctx: mockCtx });
+  const rendered = element.type(element.props);
+  assert.ok(rendered);
+});
