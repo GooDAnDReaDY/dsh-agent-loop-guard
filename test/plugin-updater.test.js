@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest } from '../lib/plugin-updater.js';
+import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, currentVersion } from '../lib/plugin-updater.js';
 
 test('isNewerVersion handles core semver and prereleases correctly', () => {
   assert.equal(isNewerVersion('0.2.4', '0.2.5'), true);
@@ -113,4 +113,21 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
     },
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
+});
+
+test('currentVersion safely handles valid, invalid, and corrupt manifest files', async () => {
+  const packageJsonUrl = new URL('../package.json', import.meta.url);
+  const readmeUrl = new URL('../README.md', import.meta.url);
+  const nonExistentUrl = new URL('../does-not-exist.json', import.meta.url);
+
+  const validVer = await currentVersion(packageJsonUrl);
+  assert.match(validVer, /^\d+\.\d+\.\d+/);
+
+  // Corrupt / non-JSON file (e.g. Markdown README)
+  const corruptVer = await currentVersion(readmeUrl);
+  assert.equal(corruptVer, 'unknown');
+
+  // Non-existent file
+  const missingVer = await currentVersion(nonExistentUrl);
+  assert.equal(missingVer, 'unknown');
 });
