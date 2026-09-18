@@ -380,3 +380,62 @@ test('field helper associates label with input using htmlFor and id', () => {
     assert.ok(matchingInput, `Label htmlFor="${label.props.htmlFor}" must match an input with that id`);
   }
 });
+
+test('client telemetry and update state handle network failures cleanly', async () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+    fetch: async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Internal Server Error' }),
+    }),
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const states = new Map();
+  let stateId = 0;
+  const mockReact = {
+    createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+    isValidElement: (el) => el && typeof el === 'object' && 'type' in el && 'props' in el,
+    cloneElement: (el, newProps) => ({ ...el, props: { ...el.props, ...newProps } }),
+    useState: (init) => {
+      const id = stateId++;
+      const val = id === 0 ? true : init;
+      if (!states.has(id)) states.set(id, val);
+      return [states.get(id), (newVal) => {
+        const resolved = typeof newVal === 'function' ? newVal(states.get(id)) : newVal;
+        states.set(id, resolved);
+      }];
+    },
+    useEffect: (fn, deps) => {
+      fn();
+    },
+    useRef: () => ({ current: null }),
+  };
+
+  const factoryExports = loadedModule.factory(() => mockReact);
+  const mockCtx = {
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => { capturedComponent = comp; },
+    },
+  };
+
+  factoryExports.apply(mockCtx);
+  const element = capturedComponent({ ctx: mockCtx });
+  element.type(element.props);
+
+  // Wait a tick for async effects to reject/settle
+  await new Promise((r) => setTimeout(r, 50));
+
+  // Verify telemetry error was set in state
+  const values = Array.from(states.values());
+  const telemetryState = values.find((v) => v && typeof v === 'object' && 'error' in v && 'totalViolations' in v);
+  assert.ok(telemetryState, 'Telemetry state should exist');
+  assert.equal(telemetryState.error, 'Failed to load telemetry');
+});
