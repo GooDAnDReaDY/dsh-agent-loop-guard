@@ -3,7 +3,7 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.9 (расширения: One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
+- **Статус:** Production-плагин, v0.2.10 (расширения: One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard, Keep a Changelog documentation).
 
 ## User Surfaces
 - **Web/UI:** Карточка настроек плагина во вкладке «Настройки → Плагины → Настройки плагинов» (`settings.plugin.item`). Свой раздел в боковом списке отсутствует (согласно `dsh-plugin-authoring`).

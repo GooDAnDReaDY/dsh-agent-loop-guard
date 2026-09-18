@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] - 2026-09-18
+
+- **Documentation & Packaging Architecture**:
+  - Migrated cumulative version changelogs from all three README files (`README.md`, `README.ru.md`, `README.zh.md`) to canonical root `CHANGELOG.md` adhering to Keep a Changelog standard (#56).
+  - Explicitly added `CHANGELOG.md` to `files` whitelist in `package.json` for npm distribution.
+  - Expanded thematic feature sections across all three language documentations with dedicated coverage of Native WebUI Settings Card, Protection Telemetry, and One-Click In-Place Updater.
+  - Synchronized automated test count to 51 tests across Russian and Chinese documentations.
+  - Updated design contract status and documentation standards in `docs/design/DESIGN.md`.
+
 ## [0.2.9] - 2026-09-18
 
 - **Theme Guard & Token Integrity**: eliminated 100% of hardcoded hex and rgba colors from `lib/client.js` in both CSS styles and JSX inline markup, switching entirely to DSH design tokens (`var(--dsw-alias-*)`) and `color-mix(in srgb, ...)`; added automated regression test `test/theme-guard.test.js` enforcing zero hex/rgba literals (#53, #39).
