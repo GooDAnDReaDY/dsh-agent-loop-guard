@@ -101,12 +101,16 @@ test('row seat key is the package name and the cordis.patch.yml row id', () => {
   assert.equal(seat.opts.key, `${PKG}#${rowId}`, 'row seat key must be <package name>#<row id>');
 });
 
-test('seat composition: row seat first, previous seats kept as fallbacks', () => {
+test('seat composition: list seat plus the previous seats kept as fallbacks', () => {
   const { registered, injected } = boot();
   const names = registered.map((r) => r.opts.name);
-  assert.deepEqual(names, ['plugins.row.config', 'settings.plugin.item']);
-  assert.deepEqual(injected, ['plugins.row.config', 'settings.plugin.item']);
-  assert.equal(registered[1].opts.key, PKG, 'the settings.plugin.item seat key is unchanged');
+  assert.deepEqual(names, ['plugins.row.config', 'plugins.item', 'settings.plugin.item']);
+  assert.deepEqual(injected, ['plugins.row.config', 'plugins.item', 'settings.plugin.item']);
+  // The list seat is the one the Plugins page renders as the plugin's own page.
+  assert.equal(registered[1].opts.id, '@goodandready/dsh-agent-loop-guard');
+  assert.equal(typeof registered[1].opts.label, 'function');
+  assert.equal(registered[1].opts.label(), 'Agent Loop Guard', 'the label is a static string');
+  assert.equal(registered[2].opts.key, PKG, 'the settings.plugin.item seat key is unchanged');
 });
 
 test('row seat renders a summary one-liner and the form bare for the page', () => {
