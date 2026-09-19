@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.12] - 2026-09-19
+
+- **Settings reachable again on the plugin's own page**: the current DSH core
+  (0.1.6-alpha.2) renders a plugin's configuration page only for entries registered
+  in the plugin-list seat `plugins.item` — that is how `dsh-agentrouter` and
+  `dsh-agent-orchestrator` show their settings, while the row seat and the legacy
+  card alone leave the page without the form. `PluginItem` is now registered there
+  too (`id: '@goodandready/dsh-agent-loop-guard'`, order 10, static label), with both
+  older seats kept as fallbacks.
+- The seat-composition test now expects the list seat and asserts its `id`, static
+  `label` and component.
+
 ## [0.2.11] - 2026-09-18
 
 - **Settings reachable again**: the settings card registered into
