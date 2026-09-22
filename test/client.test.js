@@ -45,7 +45,7 @@ test('client.js registers with ModuleLoader and defines exports properly without
 
   const factoryExports = loadedModule.factory(mockRequire);
   assert.ok(factoryExports, 'Factory should return exports object');
-  assert.deepEqual(Array.from(factoryExports.inject), ['slots', 'settingsScope', 'locale']);
+  assert.deepEqual(Array.from(factoryExports.inject), ['slots', 'configForms', 'locale']);
   assert.equal(typeof factoryExports.apply, 'function');
 });
 
