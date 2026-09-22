@@ -54,7 +54,7 @@ function boot() {
       subscribe: () => () => {},
       getLocale: () => 'en',
     },
-    settingsScope: { bind: () => ({ get: async () => ({}), set: async () => {} }) },
+    configForms: { get: () => ({ get: async () => ({}), set: async () => {} }) },
     slots: {
       inject: (name, cb) => { injected.push(name); return cb(); },
       register: (opts, comp) => { registered.push({ opts, comp }); return () => {}; },
@@ -122,7 +122,7 @@ test('row seat renders a summary one-liner and the form bare for the page', () =
   walk(summary, (node) => { if (typeof node === 'string') summaryText.push(node); });
   assert.ok(summaryText.join(' ').includes('loop limits'), 'summary must describe the plugin');
 
-  const page = expand(seat.comp({ view: 'page', ctx: { settingsScope: { bind: () => null } } }));
+  const page = expand(seat.comp({ view: 'page', ctx: { configForms: { get: () => null } } }));
   const classes = [];
   walk(page, (node) => { if (typeof node === 'object' && node.props && node.props.className) classes.push(node.props.className); });
   assert.ok(classes.includes('alg-page'), 'page view renders bare under .alg-page');
