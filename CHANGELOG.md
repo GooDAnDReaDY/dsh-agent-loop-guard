@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.13
+
+### Fixed
+- Settings no longer wait on the removed settingsScope service. The client uses configForms (#75).
+
 ## [0.2.12] - 2026-09-19
 
 - **Settings reachable again on the plugin's own page**: the current DSH core
