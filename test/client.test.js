@@ -495,3 +495,57 @@ test('card markup aligns with DSH standard CSS classes, primitives chevron and l
   const chevron = createdElements.find((el) => el.props && typeof el.props.className === 'string' && el.props.className.includes('alg-chevron'));
   assert.ok(chevron, 'Chevron icon must render with alg-chevron class');
 });
+
+test('bare mode activates updater and telemetry effects immediately without header click', async () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  let loadedModule = null;
+  const fetchedUrls = [];
+  const context = vm.createContext({
+    window: {
+      __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+    },
+    fetch: async (url) => {
+      fetchedUrls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ currentVersion: '0.2.13', latestVersion: '0.2.13', updateAvailable: false, totalViolations: 0 }),
+      };
+    },
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const mockReact = {
+    createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+    isValidElement: () => false,
+    cloneElement: (el) => el,
+    useState: (init) => [init, () => {}], // expanded starts false
+    useEffect: (fn) => { fn(); },
+    useRef: () => ({ current: null }),
+  };
+
+  const factoryExports = loadedModule.factory(() => mockReact);
+  const mockCtx = {
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => {
+        if (opts.name === 'plugins.item') capturedComponent = comp;
+      },
+    },
+  };
+
+  factoryExports.apply(mockCtx);
+  assert.ok(capturedComponent, 'plugins.item component should be registered');
+
+  const element = capturedComponent({ ctx: mockCtx, view: 'page' });
+  const pluginCardElement = typeof element.type === 'function' ? element.type(element.props) : element;
+  if (typeof pluginCardElement?.type === 'function') {
+    pluginCardElement.type(pluginCardElement.props);
+  }
+
+  await new Promise((r) => setTimeout(r, 20));
+
+  assert.ok(fetchedUrls.some((u) => u.includes('/update')), 'Update endpoint must be fetched in bare mode');
+  assert.ok(fetchedUrls.some((u) => u.includes('/telemetry')), 'Telemetry endpoint must be fetched in bare mode');
+});
