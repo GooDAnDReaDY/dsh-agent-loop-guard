@@ -346,3 +346,11 @@ test('blockExactDuplicates: false allows identical calls up to maxCallsPerRepeat
   const reason = state.denyReason('agent-no-exact', 'read', { path: 'status.json' }, 'read-4');
   assert.match(reason, /LOOP_GUARD_REPEAT/);
 });
+
+test('disposeSession removes session state and decrements activeAgents count', () => {
+  const state = new LoopGuardState(config);
+  state.beginTurn({ session: { id: 'sess-123' } }, 1, false);
+  assert.equal(state.getTelemetry().activeAgents, 1);
+  state.disposeSession('sess-123');
+  assert.equal(state.getTelemetry().activeAgents, 0);
+});
