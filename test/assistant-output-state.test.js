@@ -170,3 +170,15 @@ test('replay fixture detects narration across turns', async () => {
   assert.equal(hits.length, 1);
   assert.equal(hits[0].count, 5);
 });
+
+test('messages without id with identical length but different content are not deduplicated', () => {
+  const state = new AssistantOutputGuardState({ maxRepeatedAssistantLines: 5, maxRepeatedAssistantBlocks: 5 });
+  const m1 = state.observeMessage('sess-no-id', { turn: 1, step: 1, text: 'hello world' });
+  assert.equal(m1, undefined);
+  const m2 = state.observeMessage('sess-no-id', { turn: 1, step: 1, text: 'world hello' });
+  assert.equal(m2, undefined);
+  const m3 = state.observeMessage('sess-no-id', { turn: 1, step: 1, text: 'world hello' });
+  assert.equal(m3, undefined);
+  const sessState = state.stateFor('sess-no-id');
+  assert.equal(sessState.seenMessages.size, 2);
+});
