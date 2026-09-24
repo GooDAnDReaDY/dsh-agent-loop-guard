@@ -21,7 +21,9 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check lib/index.js && node --check lib/guard-state.js && node --check lib/assistant-output-state.js && node --check lib/plugin-updater.js && node --check lib/client.js"
+    "check": "node --check lib/index.js && node --check lib/guard-state.js && node --check lib/assistant-output-state.js && node --check lib/plugin-updater.js && node --check lib/client.js",
+    "build:client": "node scripts/build-client.mjs",
+    "pretest": "node scripts/build-client.mjs"
   },
   "dsh": {
     "bundle": {

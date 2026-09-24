@@ -549,3 +549,25 @@ test('bare mode activates updater and telemetry effects immediately without head
   assert.ok(fetchedUrls.some((u) => u.includes('/update')), 'Update endpoint must be fetched in bare mode');
   assert.ok(fetchedUrls.some((u) => u.includes('/telemetry')), 'Telemetry endpoint must be fetched in bare mode');
 });
+test('client modularization: lib/client.js is synchronized with src/client fragments and under 600 lines', () => {
+  const srcDir = path.resolve(__dirname, '../src/client');
+  const clientPath = path.resolve(__dirname, '../lib/client.js');
+
+  const files = fs.readdirSync(srcDir).filter((f) => f.endsWith('.js')).sort();
+  assert.ok(files.length >= 5, 'Should have at least 5 client module fragments');
+
+  let expected = '';
+  for (const f of files) {
+    const part = fs.readFileSync(path.join(srcDir, f), 'utf8');
+    const partLines = part.split('\n').length;
+    assert.ok(partLines <= 350, `Fragment ${f} exceeds 350 lines (${partLines})`);
+    expected += part;
+    if (!expected.endsWith('\n')) expected += '\n';
+  }
+
+  const actual = fs.readFileSync(clientPath, 'utf8');
+  assert.equal(actual, expected, 'lib/client.js must match concatenated src/client fragments');
+
+  const totalLines = actual.split('\n').length;
+  assert.ok(totalLines <= 600, `lib/client.js must not exceed 600 lines (current: ${totalLines})`);
+});
