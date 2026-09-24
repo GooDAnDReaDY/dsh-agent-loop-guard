@@ -13,7 +13,7 @@ const config = {
   maxToolAttemptsPerTurn: 8,
   maxProgressToolCallsPerTurn: 16,
   maxCallsPerRepeatGroup: 5,
-  blockExactDuplicates: true,
+  blockExactDuplicates: false,
 };
 
 function accept(state, agent, name, args, callId, result, extra = {}) {
@@ -50,7 +50,7 @@ test('unchanged result after repeated identical calls is blocked as no-progress'
     state.recordResult('agent-2', { callId: 'read-' + index, result: { revision: 1 } });
   }
   const reason = state.denyReason('agent-2', 'read', { path: 'status.json' }, 'read-6');
-  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+  assert.match(reason, /LOOP_GUARD_REPEAT/);
   assert.match(reason, /No productive progress/);
 });
 
@@ -130,7 +130,7 @@ test('stop denial enters answer-only mode and next turn resets it', () => {
 
 test('loop denial logs structured progress context and subsequent calls stay stopped', () => {
   const events = [];
-  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 1, onViolation: (event) => events.push(event) });
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 1, blockExactDuplicates: true, onViolation: (event) => events.push(event) });
   state.beginTurn('agent-10', 1, false);
   assert.equal(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-1'), undefined);
   state.commitCall('agent-10', 'read-1');
@@ -154,7 +154,7 @@ test('result errors do not count as productive progress', () => {
   assert.equal(state.denyReason('agent-11', 'bash', { command: 'install' }, 'install-2'), undefined);
   state.commitCall('agent-11', 'install-2');
   state.recordResult('agent-11', { callId: 'install-2', result: { error: 'failed' } });
-  assert.match(state.denyReason('agent-11', 'bash', { command: 'install' }, 'install-3'), /DUPLICATE/);
+  assert.match(state.denyReason('agent-11', 'bash', { command: 'install' }, 'install-3'), /REPEAT/);
 });
 
 test('explicit progress token makes an otherwise equal result productive', () => {
@@ -221,7 +221,7 @@ test('alternating identical calls between two tools without state change is bloc
   }
 
   const reason = state.denyReason('agent-alt', 'read', { path: 'a.txt' }, 'call-a-5');
-  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+  assert.match(reason, /LOOP_GUARD_REPEAT/);
 });
 
 test('telemetry tracks violations and resets correctly', () => {
@@ -240,8 +240,8 @@ test('telemetry tracks violations and resets correctly', () => {
   state.denyReason('agent-tel', 'read', { file: 'x' }, 'c7');
   const t1 = state.getTelemetry();
   assert.equal(t1.totalViolations >= 1, true);
-  assert.equal(t1.byCode.LOOP_GUARD_DUPLICATE >= 1, true);
-  assert.equal(t1.lastViolation?.code, 'LOOP_GUARD_DUPLICATE');
+  assert.equal((t1.byCode.LOOP_GUARD_DUPLICATE || t1.byCode.LOOP_GUARD_REPEAT) >= 1, true);
+  assert.equal(t1.lastViolation?.code === 'LOOP_GUARD_DUPLICATE' || t1.lastViolation?.code === 'LOOP_GUARD_REPEAT', true);
 
   // External violation (e.g. output loop)
   state.recordExternalViolation('LOOP_GUARD_OUTPUT', 'five repeated lines');
@@ -267,7 +267,7 @@ test('strict tools apply lower repeat threshold', () => {
   accept(state, 'agent-strict', 'danger_tool', { cmd: 'rm' }, 'd2', { ok: true });
 
   const reason = state.denyReason('agent-strict', 'danger_tool', { cmd: 'rm' }, 'd3');
-  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+  assert.match(reason, /LOOP_GUARD_REPEAT/);
 });
 
 test('dry run mode records violations without blocking execution', () => {
@@ -290,13 +290,14 @@ test('dry run mode records violations without blocking execution', () => {
 });
 
 test('actionable guidance is returned on duplicate rejection', () => {
-  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 2 });
+  const state = new LoopGuardState({ ...config, blockExactDuplicates: true });
   state.beginTurn('agent-guide', 1, false);
   accept(state, 'agent-guide', 'test_tool', { a: 1 }, 'g0', { out: 'same' });
-  accept(state, 'agent-guide', 'test_tool', { a: 1 }, 'g1', { out: 'same' });
-  accept(state, 'agent-guide', 'test_tool', { a: 1 }, 'g2', { out: 'same' });
+  assert.equal(state.denyReason('agent-guide', 'test_tool', { a: 1 }, 'g1'), undefined);
+  state.commitCall('agent-guide', 'g1');
+  state.recordResult('agent-guide', { callId: 'g1', result: { out: 'same' } });
 
-  const reason = state.denyReason('agent-guide', 'test_tool', { a: 1 }, 'g3');
+  const reason = state.denyReason('agent-guide', 'test_tool', { a: 1 }, 'g2');
   assert.match(reason, /ACTION REQUIRED:/);
   assert.match(reason, /Stop repeating this action/);
 });
@@ -321,3 +322,27 @@ test('onViolation callback errors are safely caught and logged via logger.debug'
 });
 
 
+
+test('blockExactDuplicates: true immediately blocks second consecutive identical call without state change', () => {
+  const state = new LoopGuardState({ ...config, blockExactDuplicates: true });
+  state.beginTurn('agent-exact', 1, false);
+  accept(state, 'agent-exact', 'read', { path: 'status.json' }, 'read-0', { revision: 1 });
+  assert.equal(state.denyReason('agent-exact', 'read', { path: 'status.json' }, 'read-1'), undefined);
+  state.commitCall('agent-exact', 'read-1');
+  state.recordResult('agent-exact', { callId: 'read-1', result: { revision: 1 } });
+  const reason = state.denyReason('agent-exact', 'read', { path: 'status.json' }, 'read-2');
+  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+});
+
+test('blockExactDuplicates: false allows identical calls up to maxCallsPerRepeatGroup', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 3, blockExactDuplicates: false });
+  state.beginTurn('agent-no-exact', 1, false);
+  accept(state, 'agent-no-exact', 'read', { path: 'status.json' }, 'read-0', { revision: 1 });
+  for (let i = 1; i <= 3; i++) {
+    assert.equal(state.denyReason('agent-no-exact', 'read', { path: 'status.json' }, 'read-' + i), undefined);
+    state.commitCall('agent-no-exact', 'read-' + i);
+    state.recordResult('agent-no-exact', { callId: 'read-' + i, result: { revision: 1 } });
+  }
+  const reason = state.denyReason('agent-no-exact', 'read', { path: 'status.json' }, 'read-4');
+  assert.match(reason, /LOOP_GUARD_REPEAT/);
+});
