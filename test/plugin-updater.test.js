@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, currentVersion } from '../lib/plugin-updater.js';
+import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, isPrivateLan, currentVersion } from '../lib/plugin-updater.js';
 
 test('isNewerVersion handles core semver and prereleases correctly', () => {
   assert.equal(isNewerVersion('0.2.4', '0.2.5'), true);
@@ -50,6 +50,28 @@ test('isTrustedUpdateRequest enforces x-dsh-plugin-update and loopback origins',
     },
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
+
+  // Valid LAN origin matching Host
+  assert.equal(isTrustedUpdateRequest({
+    headers: {
+      'x-dsh-plugin-update': '1',
+      'sec-fetch-site': 'same-origin',
+      host: '192.168.1.111:3080',
+      origin: 'http://192.168.1.111:3080',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), true);
+
+  // Cross-site origin targeting LAN host
+  assert.equal(isTrustedUpdateRequest({
+    headers: {
+      'x-dsh-plugin-update': '1',
+      'sec-fetch-site': 'cross-site',
+      host: '192.168.1.111:3080',
+      origin: 'http://evil.com',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
 });
 
 test('isTrustedTelemetryRequest enforces loopback and same-origin validation', () => {
@@ -113,6 +135,46 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
     },
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
+
+  // Valid LAN origin POST matching Host
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      origin: 'http://192.168.1.111:3080',
+      host: '192.168.1.111:3080',
+      'sec-fetch-site': 'same-origin',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), true);
+
+  // Cross-site origin targeting LAN telemetry
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      origin: 'http://attacker-site.com',
+      host: '192.168.1.111:3080',
+      'sec-fetch-site': 'cross-site',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
+});
+
+test('isPrivateLan recognizes private IPv4 ranges and rejects external addresses', () => {
+  assert.equal(isPrivateLan('192.168.1.1'), true);
+  assert.equal(isPrivateLan('192.168.0.254'), true);
+  assert.equal(isPrivateLan('10.0.0.1'), true);
+  assert.equal(isPrivateLan('10.255.255.255'), true);
+  assert.equal(isPrivateLan('172.16.0.1'), true);
+  assert.equal(isPrivateLan('172.31.255.254'), true);
+  assert.equal(isPrivateLan('::ffff:192.168.1.100'), true);
+
+  assert.equal(isPrivateLan('127.0.0.1'), false);
+  assert.equal(isPrivateLan('localhost'), false);
+  assert.equal(isPrivateLan('8.8.8.8'), false);
+  assert.equal(isPrivateLan('172.32.0.1'), false);
+  assert.equal(isPrivateLan('example.com'), false);
+  assert.equal(isPrivateLan(null), false);
+  assert.equal(isPrivateLan(undefined), false);
 });
 
 test('currentVersion safely handles valid, invalid, and corrupt manifest files', async () => {
