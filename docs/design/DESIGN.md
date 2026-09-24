@@ -3,17 +3,21 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.10 (расширения: One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard, Keep a Changelog documentation).
+- **Статус:** Production-плагин, v0.2.13 (расширения: dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
 
 ## User Surfaces
-- **Web/UI:** Карточка настроек плагина во вкладке «Настройки → Плагины → Настройки плагинов» (`settings.plugin.item`). Свой раздел в боковом списке отсутствует (согласно `dsh-plugin-authoring`).
+- **Web/UI:** Dual-seat архитектура интеграции настроек плагина:
+  1. **Страница плагинов ядра DSH (основная посадка):**
+     - Слот `plugins.row.config`: привязка кнопки конфигурации строки плагина в списке плагинов ядра по ключу `<package>#<rowId>` (`@goodandready/dsh-agent-loop-guard#@goodandready/dsh-agent-loop-guard`).
+     - Слот `plugins.item`: отображение нативной страницы настроек плагина. Поддерживает режимы `view: 'summary'` (компактный однострочный статус для списка) и `view: 'page'` (полная форма настроек в bare-контейнере `.alg-page` без дублирования внешней рамки карточки).
+  2. **Вкладка настроек плагинов (fallback/совместимость):**
+     - Слот `settings.plugin.item` (`key: @goodandready/dsh-agent-loop-guard`, `order: 95`): автономная сворачиваемая карточка `.alg-card` с интерактивным шевроном раскрытия для хостов, использующих классическую модель настроек.
 - **DSH UI / settings / slots:**
-  - Слот: `settings.plugin.item`, `order: 95`, `locale: @goodandready/dsh-agent-loop-guard`.
-  - Элементы карточки:
-    - Заголовок с иконкой и версионным бейджем.
+  - Элементы интерфейса:
+    - Заголовок с версионным бейджем (считываемым динамически через API обновления).
     - Секция One-Click обновления (индикатор проверки, кнопка «Update Now» при наличии новой версии в npm).
-    - Секция телеметрии живой защиты (счётчики заблокированных петель сессии).
-    - Форма параметров: числовые поля (`maxToolAttemptsPerTurn`, `maxProgressToolCallsPerTurn`, `maxCallsPerRepeatGroup`, `maxRepeatedAssistantLines`, `maxRepeatedAssistantBlocks`, `maxAssistantBlockChars`; устаревший алиас `maxCallsPerToolPerTurn` сохранён в схеме для обратной совместимости, но опущен в UI), чекбоксы (`blockExactDuplicates`, `assistantOutputGuard`, `dryRunMode`), текстовые списки (`progressToolNames`, `strictTools`).
+    - Секция телеметрии живой защиты (счётчики заблокированных петель сессии и кнопка сброса статистики).
+    - Форма параметров: числовые поля (`maxToolAttemptsPerTurn`, `maxProgressToolCallsPerTurn`, `maxCallsPerRepeatGroup`, `strictToolLimit`, `maxRepeatedAssistantLines`, `maxRepeatedAssistantBlocks`, `maxAssistantBlockChars`; устаревший алиас `maxCallsPerToolPerTurn` сохранён в схеме для обратной совместимости), чекбоксы (`blockExactDuplicates`, `dryRunMode`, `assistantOutputGuard`), текстовые списки (`progressToolNames`, `strictTools`).
     - Кнопка сохранения с индикацией статуса (`Saving...`, `Saved`, ошибки валидации).
 - **API:**
   - Route: `/api/@goodandready/dsh-agent-loop-guard/update` (GET — статус версий, POST — доверенное обновление с обязательной проверкой x-dsh-plugin-update, loopback и same-origin).
@@ -98,12 +102,13 @@
   - Пользовательский интерфейс плагина обязан поддерживать **English (`en`)** и **Chinese (`zh`)**.
   - Все новые ключи для русского перевода регистрируются через issue в Gitea `goodandready/dsh-russian-lang` со сравнительной таблицей `Key | English | Chinese | Proposed Russian`.
   - Документация в репозитории ведётся на 3 языках (`README.md`, `README.ru.md`, `README.zh.md`).
+  - **Обоснование русскоязычных ключевых слов в `STOP_REQUEST_PATTERN`:** Регулярное выражение `STOP_REQUEST_PATTERN` в `lib/guard-state.js` включает кириллические лексемы (`стоп`, `остановись`, `прекрати`, `хватит`, `ответь`, `петля`). Это функциональный предикат безопасности входного потока (intent classifier), прерывающий инструментальные зацикливания при командах русскоязычных пользователей. Это правило классификации сигналов защиты runtime-уровня, а не UI-текст или локализованный вывод.
 - **Don't:**
-  - **Запрещено** хардкодить русские строки, русские дефолты или русский словарь `ru` внутри кода плагина (`lib/client.js`, `lib/index.js`).
+  - **Запрещено** хардкодить русские строки в UI-компонентах, пользовательских сообщениях или объявлять русский словарь `ru` внутри `lib/client.js` и `lib/index.js` (перевод интерфейса обеспечивается плагином `dsh-russian-lang`).
   - **Запрещено** удалять существующие описания фич в документации при релизе (только additive-обновление).
   - **Запрещено** менять вторую цифру версии $y$ без явной прямой команды пользователя.
 
 ## Что публикуется
 - **npm registry:** распространяются только исполняемые файлы и базовая пользовательская документация (`lib/**`, `cordis.patch.yml`, `README.md`, `README.ru.md`, `README.zh.md`, `LICENSE`, `package.json`). Каталог `docs/` целиком исключён из npm-пакета через whitelist `files` в `package.json`.
 - **GitHub / Gitea:** публичный GitHub содержит код и корневые README. Внутренняя проектная документация (`docs/**`, включая `DESIGN.md`), планы и аудит-артефакты живут и обновляются в Gitea-репозитории.
-- **Дата последней проверки состава:** 18.09.2026 (npm pack --dry-run: 11 файлов, 131.3 kB unpacked).
+- **Дата последней проверки состава:** 24.09.2026 (npm pack --dry-run: 12 файлов, 37.1 kB packed, 131.3 kB unpacked).
