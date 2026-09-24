@@ -354,3 +354,21 @@ test('disposeSession removes session state and decrements activeAgents count', (
   state.disposeSession('sess-123');
   assert.equal(state.getTelemetry().activeAgents, 0);
 });
+
+test('uncommitted call released in recordResult decrements repeat and exact group counts', () => {
+  const state = new LoopGuardState({ ...config, blockExactDuplicates: true, maxCallsPerRepeatGroup: 2 });
+  state.beginTurn('agent-uncommitted', 1, false);
+  accept(state, 'agent-uncommitted', 'read', { path: 'file.txt' }, 'c1', { text: 'v1' });
+  // Reserve c2, but do not commit it
+  assert.equal(state.denyReason('agent-uncommitted', 'read', { path: 'file.txt' }, 'c2'), undefined);
+  // c2 is pending and uncommitted; recordResult releases it
+  const res = state.recordResult('agent-uncommitted', { callId: 'c2' });
+  assert.equal(res.productive, false);
+  // Exact group count was decremented, so c3 is allowed
+  assert.equal(state.denyReason('agent-uncommitted', 'read', { path: 'file.txt' }, 'c3'), undefined);
+  state.commitCall('agent-uncommitted', 'c3');
+  state.recordResult('agent-uncommitted', { callId: 'c3', result: { text: 'v1' } });
+  // Now c4 is an exact duplicate after committed unproductive c3, so it is blocked
+  const reason = state.denyReason('agent-uncommitted', 'read', { path: 'file.txt' }, 'c4');
+  assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+});
