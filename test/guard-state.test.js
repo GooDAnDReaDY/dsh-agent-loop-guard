@@ -4,6 +4,7 @@ import {
   LoopGuardState,
   callFingerprint,
   callRepeatFingerprint,
+  resultFingerprint,
   hasStopRequest,
   nonNegativeInteger,
   positiveInteger,
@@ -371,4 +372,23 @@ test('uncommitted call released in recordResult decrements repeat and exact grou
   // Now c4 is an exact duplicate after committed unproductive c3, so it is blocked
   const reason = state.denyReason('agent-uncommitted', 'read', { path: 'file.txt' }, 'c4');
   assert.match(reason, /LOOP_GUARD_DUPLICATE/);
+});
+
+test('large tool arguments and results are hashed into compact signatures', () => {
+  const largeData = 'x'.repeat(10000);
+  const fp = callFingerprint('read', { content: largeData });
+  assert.equal(fp.startsWith('read:sha256:'), true);
+  assert.equal(fp.length < 100, true);
+
+  const rfp = resultFingerprint({ big: largeData });
+  assert.equal(rfp.startsWith('sha256:'), true);
+  assert.equal(rfp.length < 100, true);
+
+  // Equal large data produces identical fingerprint
+  assert.equal(callFingerprint('read', { content: largeData }), fp);
+  assert.equal(resultFingerprint({ big: largeData }), rfp);
+
+  // Different large data produces different fingerprint
+  assert.notEqual(callFingerprint('read', { content: largeData + 'y' }), fp);
+  assert.notEqual(resultFingerprint({ big: largeData + 'y' }), rfp);
 });
