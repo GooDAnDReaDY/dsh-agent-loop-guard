@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.14] - 2026-09-24
+
+### Added
+- **Streaming Assistant Block Hashing**: Incremental SHA-256 hashing for assistant output blocks exceeding 16,384 characters, preventing false positive loop rejections caused by truncated suffixes (#79).
+- **Large Payload Fingerprints**: SHA-256 fingerprint hashing for tool arguments and results larger than 256 bytes, drastically lowering memory usage and serialization overhead in long turns (#70, #66).
+- **Client Modular Architecture**: Extracted monolithic client source into clean submodules under `src/client/` (`00-header.js`, `10-styles.js`, `20-locales.js`, `50-settings-card.js`, `60-slots.js`, `90-footer.js`) with automated build via `scripts/build-client.mjs`, reducing final client bundle below the 600-line preflight threshold (#74).
+- **Repository Clean Script**: Added standard `clean` npm script (`rm -f *.tgz`) (#67).
+
+### Fixed
+- **Immediate Duplicate Tool Call Blocking**: `blockExactDuplicates: true` now rejects identical duplicate tool calls immediately on the first recurrence (`exactCount >= 1`), while `blockExactDuplicates: false` allows iterations up to `maxCallsPerRepeatGroup` (#76).
+- **Memory Leak in Session State**: `LoopGuardState.byAgent` now removes agent session entries when `session/disposed` fires, preventing memory growth in persistent daemon processes (#69, #65).
+- **Group Counter Rollback**: Releasing uncommitted or canceled tool calls in `recordResult` properly decrements `repeatGroups` and `exactGroups` counters (#78).
+- **Assistant Message Fallback Key**: Normalized message text is now used as fallback key when message ID is absent, replacing unreliable string length comparison (#77).
+- **Telemetry Violation Accuracy**: Preserved primary violation code (`blockReason`) during `answerOnly` mode, eliminating false spikes of `LOOP_GUARD_STOP` in telemetry when agents attempt subsequent tools (#73).
+- **LAN Origin Authorization**: Permitted same-origin update and telemetry requests from local network host headers matching the server socket address (#72).
+- **Bare Mode UI Activation**: Enabled automatic telemetry polling and updater checks when rendering bare settings on `plugins.item` and `plugins.row.config` seats without manual header clicks (#64).
+
+### Performance
+- Replaced array-copy reversal (`[...calls].reverse().find`) with native `Array.prototype.findLast` in `findCall` (#71).
+
+### Documentation
+- Updated `docs/design/DESIGN.md` to document dual-seat integration (`plugins.row.config` and `plugins.item`), justify runtime functional Cyrillic stop word heuristics, and refresh npm packaging metrics (#68).
+
 ## 0.2.13
 
 ### Fixed
