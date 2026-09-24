@@ -140,11 +140,11 @@ test('loop denial logs structured progress context and subsequent calls stay sto
   state.commitCall('agent-10', 'read-2');
   state.recordResult('agent-10', { callId: 'read-2', result: { value: 'same' } });
   assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-3'), /DUPLICATE/);
-  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-4'), /LOOP_GUARD_STOP/);
+  assert.match(state.denyReason('agent-10', 'read', { path: 'x', token: 'secret-value', command: 'curl -H "Authorization: token secret-value"' }, 'read-4'), /DUPLICATE/);
   assert.equal(events.length, 2);
   assert.equal(events[0].code, 'LOOP_GUARD_DUPLICATE');
   assert.equal(events[0].arguments.token, '[redacted]');
-  assert.equal(events[1].code, 'LOOP_GUARD_STOP');
+  assert.equal(events[1].code, 'LOOP_GUARD_DUPLICATE');
   assert.equal(events[1].progressEpoch, 1);
 });
 
@@ -391,4 +391,22 @@ test('large tool arguments and results are hashed into compact signatures', () =
   // Different large data produces different fingerprint
   assert.notEqual(callFingerprint('read', { content: largeData + 'y' }), fp);
   assert.notEqual(resultFingerprint({ big: largeData + 'y' }), rfp);
+});
+
+test('subsequent calls after violation retain original violation code in telemetry instead of LOOP_GUARD_STOP', () => {
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 1, blockExactDuplicates: true });
+  state.beginTurn('agent-tel2', 1, false);
+
+  accept(state, 'agent-tel2', 'read', { file: 'same' }, 'c1', { v: 1 });
+  accept(state, 'agent-tel2', 'read', { file: 'same' }, 'c2', { v: 1 });
+
+  // First violation triggers LOOP_GUARD_DUPLICATE
+  state.denyReason('agent-tel2', 'read', { file: 'same' }, 'c3');
+  // Subsequent attempts in the same turn should retain LOOP_GUARD_DUPLICATE
+  state.denyReason('agent-tel2', 'read', { file: 'same' }, 'c4');
+  state.denyReason('agent-tel2', 'bash', { command: 'ls' }, 'c5');
+
+  const telemetry = state.getTelemetry();
+  assert.equal(telemetry.byCode.LOOP_GUARD_STOP || 0, 0);
+  assert.equal(telemetry.byCode.LOOP_GUARD_DUPLICATE, 3);
 });
