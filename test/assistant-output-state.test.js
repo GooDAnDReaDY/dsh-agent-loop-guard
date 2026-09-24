@@ -182,3 +182,37 @@ test('messages without id with identical length but different content are not de
   const sessState = state.stateFor('sess-no-id');
   assert.equal(sessState.seenMessages.size, 2);
 });
+
+test('two blocks exceeding char limit with different prefix and same suffix do not trigger false duplicate', () => {
+  const state = new AssistantOutputGuardState({
+    maxAssistantBlockChars: 100,
+    maxRepeatedAssistantBlocks: 2,
+  });
+  const suffix = '\n' + 'common line ending\n'.repeat(10);
+  const block1 = 'unique start 1'.repeat(10) + suffix;
+  const block2 = 'unique start 2'.repeat(10) + suffix;
+
+  state.observeText('sess-long', { turn: 1, step: 1, text: block1 });
+  assert.equal(state.endBlock('sess-long'), undefined);
+
+  state.observeText('sess-long', { turn: 2, step: 1, text: block2 });
+  const hit = state.endBlock('sess-long');
+  assert.equal(hit, undefined);
+});
+
+test('two identical blocks exceeding char limit do trigger on threshold', () => {
+  const state = new AssistantOutputGuardState({
+    maxAssistantBlockChars: 100,
+    maxRepeatedAssistantBlocks: 2,
+  });
+  const block = Array.from({ length: 15 }, (_, i) => `unique line number ${i} in the block`).join('\n') + '\n';
+
+  state.observeText('sess-repeat-long', { turn: 1, step: 1, text: block });
+  assert.equal(state.endBlock('sess-repeat-long'), undefined);
+
+  state.observeText('sess-repeat-long', { turn: 2, step: 1, text: block });
+  const hit = state.endBlock('sess-repeat-long');
+  assert.notEqual(hit, undefined);
+  assert.equal(hit.count, 2);
+  assert.match(hit.reason, /ASSISTANT_BLOCK/);
+});
