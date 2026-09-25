@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.15] - 2026-09-25
+
+### Fixed
+- **SettingsForms API Migration**: Replaced legacy, removed `sctx.settings.register()` call with modern DSH 0.1.7-rc.1 `SettingsForms` lifecycle integration (#85).
+- **Presentation Policy**: Configured `sctx.settings.configure({ auto: false }, ctx.fiber)` to register page policy with proper disposer in `sctx.effect`.
+- **Live Settings Resolution**: Resolved live configuration via `sctx.settings.describe()` and subscribed to `settings/document-updated` event.
+- **Config Reload Contract**: Supported `app-boot/config-reload` and `internal/update` events for runtime guard limit re-synchronization.
+- **Optional Dependency**: Removed `settings` from top-level required `inject` array, enabling the plugin to run cleanly in headless or minimal environments.
+
 ## [0.2.14] - 2026-09-24
 
 ### Added
