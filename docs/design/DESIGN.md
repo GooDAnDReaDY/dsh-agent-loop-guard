@@ -91,6 +91,9 @@
   6. Интерфейс сообщает: `Updated successfully. Restart DSH service to apply changes.`.
 
 ## Architecture & Reusable Components
+- **Configuration & Volatile Handling (`lib/index.js`):**
+  - Поддержка Cordis / DSH 0.2.0-rc.2 Volatile live-значений: настройки с `.volatile()` нормализуются функцией `plainConfig()` до передачи в Schemastery `Config(...)` и после валидации.
+  - Сохраняется строгая валидация типов: невалидные пользовательские данные по-прежнему вызывают `ValidationError`, произвольные объекты не приводятся молчаливо.
 - **Plugin Updater (`lib/plugin-updater.js`):**
   - Реализация основана на каноническом шаблоне `references/plugin-updater.ts` с поддержкой безопасной проверки версий semver, loopback/same-origin валидации и флага `x-dsh-plugin-update`.
   - Маршрут эндпоинта зафиксирован как `/api/@goodandready/dsh-agent-loop-guard/update` (совпадает с полным именем npm-пакета плагина для изоляции пространства имён роутера DSH Web).
