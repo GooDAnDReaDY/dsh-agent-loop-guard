@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.18] - 2026-09-30
+
+### Fixed
+- **Cordis Volatile Unwrapping (#93)**: Unwrapped Volatile settings references recursively via `plainConfig()` and `resolveConfig()` before and after Schemastery `Config(...)` validation, preventing `ValidationError: $.maxToolAttemptsPerTurn expected number but got [object Object]` during plugin activation under DSH 0.2.0-rc.2.
+- **Strict Validation Integrity**: Preserved strict error throwing on invalid user types (e.g. non-numeric volatile values or arbitrary non-volatile objects) without silent coercion.
+
+## [0.2.17] - 2026-09-29
+
+### Fixed
+- **Settings Form ID Binding (#92)**: Keyed form presentation under the entry ID for DSH 0.1.7-rc.2 and 0.2.0 hosts.
+
 ## 0.2.16
 
 ### Fixed

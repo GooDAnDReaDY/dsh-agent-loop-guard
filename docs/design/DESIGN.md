@@ -3,7 +3,7 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.13 (расширения: dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
+- **Статус:** Production-плагин, v0.2.18 (расширения: поддержка Cordis Volatile live-настроек, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
 
 ## User Surfaces
 - **Web/UI:** Dual-seat архитектура интеграции настроек плагина:
@@ -91,6 +91,10 @@
   6. Интерфейс сообщает: `Updated successfully. Restart DSH service to apply changes.`.
 
 ## Architecture & Reusable Components
+- **SettingsForms Lifecycle Integration (`lib/index.js`):**
+  - Поддержка современного API `SettingsForms` (DSH 0.1.7-rc.1+ и 0.2.0): сервис `settings` не требуется на верхнем уровне (`inject` опционален).
+  - При наличии сервиса регистрируется политика страницы `sctx.settings.configure({ auto: false }, ctx.fiber)` с возвратом диспозера внутри `sctx.effect`.
+  - Динамическое чтение конфигурации выполняется через `describe()` / `get(NS)` с подпиской на событие `settings/document-updated`.
 - **Configuration & Volatile Handling (`lib/index.js`):**
   - Поддержка Cordis / DSH 0.2.0-rc.2 Volatile live-значений: настройки с `.volatile()` нормализуются функцией `plainConfig()` до передачи в Schemastery `Config(...)` и после валидации.
   - Сохраняется строгая валидация типов: невалидные пользовательские данные по-прежнему вызывают `ValidationError`, произвольные объекты не приводятся молчаливо.
