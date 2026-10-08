@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.19] - 2026-10-08
+
+### Fixed
+- **Settings Contract & Snapshot Reader (#90)**: Replaced non-existent  with synchronous , unpacked settings values from  ( contract) instead of , and bound reactive updates through .
+- **Locale Resolution & Reactivity (#40)**: Read active locale identifier from  in  with fallback to  and , ensuring settings card respects the host language selection over browser .
+- **Volatile Schema Verification (#89)**: Verified and tested that all 13 user-facing  schema fields carry  (), ensuring live configuration registration under DSH 0.2.0.
+
 ## [0.2.18] - 2026-09-30
 
 ### Fixed
