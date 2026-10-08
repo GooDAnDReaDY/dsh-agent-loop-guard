@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVolatile } from '@deepseek-ai/cosmokit';
-import { apply, plainConfig, isVolatileRef, name as PKG } from '../lib/index.js';
+import { apply, plainConfig, isVolatileRef, name as PKG, Config } from '../lib/index.js';
 
 function createMockContext(options = {}) {
   const events = new Map();
@@ -233,4 +233,15 @@ test('live update of Volatile settings via config-reload refreshes runtime guard
   assert.equal(guard({ agent, name: 'tool_2', arguments: {}, callId: 'c2_2' }), undefined);
   assert.equal(guard({ agent, name: 'tool_3', arguments: {}, callId: 'c2_3' }), undefined);
   assert.equal(guard({ agent, name: 'tool_4', arguments: {}, callId: 'c2_4' }), undefined);
+});
+
+test('Config schema exports all 13 user-facing fields marked with .volatile() (#89)', () => {
+  assert.ok(Config, 'Config schema must be exported');
+  const dict = Config.dict;
+  assert.ok(dict, 'Config must have dict');
+  const keys = Object.keys(dict);
+  assert.equal(keys.length, 13, 'Config schema must define exactly 13 fields');
+  for (const [key, schema] of Object.entries(dict)) {
+    assert.equal(schema.meta?.volatile, true, 'Field ' + key + ' must have meta.volatile: true');
+  }
 });
