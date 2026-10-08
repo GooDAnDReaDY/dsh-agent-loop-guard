@@ -37,7 +37,7 @@
         const snap = typeof _ctx?.locale?.getLocale === 'function'
           ? _ctx.locale.getLocale()
           : (typeof _ctx?.locale?.getSnapshot === 'function' ? _ctx.locale.getSnapshot() : null);
-        const loc = typeof snap === 'string' ? snap : (snap?.locale || snap?.id);
+        const loc = typeof snap === 'string' ? snap : (snap?.active || snap?.locale || snap?.id);
         if (loc) return loc;
         return typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en';
       };
@@ -56,30 +56,39 @@
       React.useEffect(() => {
         if (!scope) { setStatus('unavailable'); return; }
         let cancelled = false;
-        (async () => {
-          try {
-            const snap = await scope.get();
-            if (cancelled) return;
-            if (snap && typeof snap === 'object' && 'status' in snap) {
-              if (snap.status === 'loading') { setStatus('loading'); return; }
-              if (snap.status === 'unavailable') { setStatus('unavailable'); return; }
-            }
-            const vals = snap && snap.values ? snap.values : snap;
-            if (vals && typeof vals === 'object') {
-              const names = Array.isArray(vals.progressToolNames) ? vals.progressToolNames : DEFAULTS.progressToolNames;
-              const strict = Array.isArray(vals.strictTools) ? vals.strictTools : DEFAULTS.strictTools;
-              setDraft((d) => ({
-                ...d, ...DEFAULTS, ...vals,
-                progressToolNamesText: names.join(', '),
-                strictToolsText: strict.join(', '),
-              }));
-            }
-            setStatus('ready');
-          } catch (e) {
-            if (!cancelled) setStatus('unavailable');
+        const syncFromSnapshot = (snap) => {
+          if (!snap || typeof snap !== 'object') return;
+          if ('status' in snap) {
+            if (snap.status === 'loading') { setStatus('loading'); return; }
+            if (snap.status === 'unavailable') { setStatus('unavailable'); return; }
           }
-        })();
-        return () => { cancelled = true; };
+          const vals = snap.value !== undefined ? snap.value : (snap.values !== undefined ? snap.values : snap);
+          if (vals && typeof vals === 'object') {
+            const names = Array.isArray(vals.progressToolNames) ? vals.progressToolNames : DEFAULTS.progressToolNames;
+            const strict = Array.isArray(vals.strictTools) ? vals.strictTools : DEFAULTS.strictTools;
+            setDraft((d) => ({
+              ...d, ...DEFAULTS, ...vals,
+              progressToolNamesText: names.join(', '),
+              strictToolsText: strict.join(', '),
+            }));
+          }
+          setStatus('ready');
+        };
+
+        try {
+          if (typeof scope.getSnapshot === 'function') syncFromSnapshot(scope.getSnapshot());
+          else if (typeof scope.get === 'function') Promise.resolve(scope.get()).then((s) => { if (!cancelled) syncFromSnapshot(s); }).catch(() => { if (!cancelled) setStatus('unavailable'); });
+          else setStatus('unavailable');
+        } catch (_) { if (!cancelled) setStatus('unavailable'); }
+
+        const unsub = typeof scope.subscribe === 'function' ? scope.subscribe(() => {
+          if (!cancelled && typeof scope.getSnapshot === 'function') { try { syncFromSnapshot(scope.getSnapshot()); } catch (_) {} }
+        }) : null;
+
+        return () => {
+          cancelled = true;
+          if (typeof unsub === 'function') unsub();
+        };
       }, [scope]);
 
       React.useEffect(() => {
