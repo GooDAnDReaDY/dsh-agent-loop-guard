@@ -195,7 +195,7 @@ test('card resolves locale from _ctx.locale.getLocale and responds to subscribe'
   let subscriber = null;
   const mockCtx = {
     locale: {
-      getLocale: () => ({ locale: currentLocale }),
+      getLocale: () => ({ active: currentLocale, locales: [{ id: currentLocale }] }),
       subscribe: (fn) => { subscriber = fn; return () => {}; },
       register: () => {},
     },
@@ -213,7 +213,12 @@ test('card resolves locale from _ctx.locale.getLocale and responds to subscribe'
   // Render component and execute functional component to trigger hooks
   const element = capturedComponent({ ctx: mockCtx });
   assert.ok(element && typeof element.type === 'function');
-  element.type(element.props);
+  const rendered = element.type(element.props);
+  // Verify that active: zh-CN resolves Chinese strings despite navigator.language =  en-US
+  const headerBtn = rendered.children[0];
+  const titleContainer = headerBtn.children[0];
+  const subElem = titleContainer.children[1];
+  assert.equal(subElem.children[0], '工具调用与助手输出防死循环熔断限制');
 
   // Execute registered effects
   for (const hook of effectHooks) {
