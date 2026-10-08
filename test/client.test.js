@@ -549,6 +549,73 @@ test('bare mode activates updater and telemetry effects immediately without head
   assert.ok(fetchedUrls.some((u) => u.includes('/update')), 'Update endpoint must be fetched in bare mode');
   assert.ok(fetchedUrls.some((u) => u.includes('/telemetry')), 'Telemetry endpoint must be fetched in bare mode');
 });
+test('card reads settings from ConfigForm.getSnapshot, unpacks snap.value, and responds to subscribe', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+  let loadedModule = null;
+  const context = vm.createContext({
+    window: { __ModuleLoader__: { load: (mod) => { loadedModule = mod; } } },
+  });
+  vm.runInContext(clientCode, context);
+
+  let capturedComponent = null;
+  const stateMap = new Map();
+  let stateIdx = 0;
+  const effects = [];
+
+  const mockReact = {
+    createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+    isValidElement: () => false,
+    useState: (init) => {
+      const idx = stateIdx++;
+      if (!stateMap.has(idx)) stateMap.set(idx, init);
+      return [stateMap.get(idx), (val) => {
+        const next = typeof val === 'function' ? val(stateMap.get(idx)) : val;
+        stateMap.set(idx, next);
+      }];
+    },
+    useEffect: (fn, deps) => { effects.push(fn); },
+    useRef: () => ({ current: null }),
+  };
+
+  const factory = loadedModule.factory(() => mockReact);
+  let formSubscriber = null;
+  let currentSnapshot = {
+    status: 'ready',
+    value: { maxToolAttemptsPerTurn: 42, strictTools: ['custom_tool'] },
+  };
+
+  const mockScope = {
+    getSnapshot: () => currentSnapshot,
+    subscribe: (cb) => { formSubscriber = cb; return () => {}; },
+  };
+
+  const mockCtx = {
+    configForms: {
+      get: (ns) => (ns === '@goodandready/dsh-agent-loop-guard' ? mockScope : null),
+    },
+    slots: {
+      inject: (name, cb) => cb(),
+      register: (opts, comp) => { capturedComponent = comp; },
+    },
+  };
+
+  factory.apply(mockCtx);
+  assert.ok(capturedComponent, 'Component should be registered');
+
+  const element = capturedComponent({ ctx: mockCtx });
+  element.type(element.props);
+
+  for (const fn of effects) {
+    fn();
+  }
+
+  const values = Array.from(stateMap.values());
+  const draftState = values.find((v) => v && typeof v === 'object' && v.maxToolAttemptsPerTurn === 42);
+  assert.ok(draftState, 'Draft should unpack stored maxToolAttemptsPerTurn from snap.value');
+  assert.equal(draftState.strictToolsText, 'custom_tool');
+  assert.ok(formSubscriber, 'Form subscriber should be attached');
+});
+
 test('client modularization: lib/client.js is synchronized with src/client fragments and under 600 lines', () => {
   const srcDir = path.resolve(__dirname, '../src/client');
   const clientPath = path.resolve(__dirname, '../lib/client.js');
