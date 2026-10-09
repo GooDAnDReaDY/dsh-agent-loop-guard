@@ -216,3 +216,17 @@ test('two identical blocks exceeding char limit do trigger on threshold', () => 
   assert.equal(hit.count, 2);
   assert.match(hit.reason, /ASSISTANT_BLOCK/);
 });
+
+test('streamedText is capped at maxAssistantBlockChars and does not grow unbounded (#97)', () => {
+  const state = new AssistantOutputGuardState({
+    maxAssistantBlockChars: 128,
+  });
+  const chunk = 'a'.repeat(50);
+  for (let i = 0; i < 10; i++) {
+    state.observeText('sess-bound', { turn: 1, step: 1, text: chunk });
+  }
+  const sessState = state.stateFor('sess-bound');
+  assert.ok(sessState.streamedText.length <= 128, 'streamedText must be capped at 128, was ' + sessState.streamedText.length);
+  assert.equal(sessState.blockText.length, 128);
+  assert.equal(sessState.streamedText.length, 128);
+});
