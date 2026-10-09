@@ -12,7 +12,7 @@
   display: flex; align-items: center; gap: 12px; padding: 14px 16px;
   transition: background 0.15s ease;
 }
-.alg-header-btn:hover { background: var(--dsw-alias-bg-hover, var(--dsw-alias-bg-layer-hover)); }
+.alg-header-btn:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .alg-chevron {
   margin-left: auto; color: var(--dsw-alias-label-tertiary);
   display: flex; align-items: center; justify-content: center;
@@ -28,7 +28,7 @@
   border-radius: 8px; padding: 0 12px; font-size: 13px; outline: none;
   transition: border-color 0.15s ease;
 }
-.alg-input:focus { border-color: var(--dsw-alias-accent-primary); }
+.alg-input:focus { border-color: var(--dsw-alias-brand-primary); }
 .alg-checkbox-label {
   display: flex; align-items: center; gap: 8px; font-size: 13px;
   color: var(--dsw-alias-label-primary); cursor: pointer; padding: 6px 0;
@@ -36,7 +36,7 @@
 .alg-btn-primary {
   appearance: none; font: inherit; cursor: pointer; border: 0; border-radius: 8px;
   padding: 6px 16px; font-size: 13px; font-weight: 500;
-  background: var(--dsw-alias-accent-primary); color: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-brand-primary); color: var(--dsw-alias-label-primary-inverted, var(--dsw-alias-bg-layer-3));
   transition: opacity 0.15s ease;
 }
 .alg-btn-primary:hover:not(:disabled) { opacity: 0.9; }
@@ -44,7 +44,7 @@
 .alg-btn-updater {
   appearance: none; font: inherit; cursor: pointer; border: 0; border-radius: 6px;
   padding: 4px 10px; font-size: 12px; font-weight: 500;
-  background: var(--dsw-alias-accent-primary); color: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-brand-primary); color: var(--dsw-alias-label-primary-inverted, var(--dsw-alias-bg-layer-3));
   transition: opacity 0.15s ease;
 }
 .alg-btn-updater:hover:not(:disabled) { opacity: 0.9; }
