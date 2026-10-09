@@ -172,22 +172,49 @@ test('non-array user content is safe', () => {
   assert.equal(hasStopRequest([{ source: { kind: 'user' }, content: 'stop' }]), false);
 });
 
-test('stop request recognizes all policy keywords and ignores neutral text', () => {
+test('stop request recognizes default EN and ZH policy keywords and ignores neutral text (#103)', () => {
   const userMsg = (text) => [{ source: { kind: 'user' }, content: [{ text }] }];
-  const positive = [
-    'стоп', 'Стоп!', 'СТОП', 'остановись', 'остановить',
-    'прекрати', 'хватит', 'ответь', 'петля', 'stop', 'STOP'
+  const positiveEn = [
+    'stop', 'STOP', 'Stop!', 'halt', 'HALT', 'cancel', 'Cancel', 'abort', 'ABORT',
+    'terminate', 'answer', 'answer now', 'Answer now!'
   ];
-  for (const word of positive) {
+  for (const word of positiveEn) {
+    assert.equal(hasStopRequest(userMsg(word)), true, `expected "${word}" to be recognized as stop request`);
+  }
+
+  const positiveZh = [
+    '停止', '请停止', '暂停', '请暂停执行', '取消', '取消操作',
+    '终止', '请终止', '回答', '请回答', '死循环', '检测到死循环'
+  ];
+  for (const word of positiveZh) {
     assert.equal(hasStopRequest(userMsg(word)), true, `expected "${word}" to be recognized as stop request`);
   }
 
   const neutral = [
-    'остановка сервиса', 'стоп-кран', 'пистолет', 'стопка документов', 'стоп-сигнал'
+    'non-stop flight', 'answering machine', 'postponed'
   ];
   for (const text of neutral) {
     assert.equal(hasStopRequest(userMsg(text)), false, `expected "${text}" to NOT be recognized as stop request`);
   }
+});
+
+test('stop request supports configurable customPatterns (#103)', () => {
+  const userMsg = (text) => [{ source: { kind: 'user' }, content: [{ text }] }];
+
+  // Without custom patterns, words outside EN/ZH are not matched
+  assert.equal(hasStopRequest(userMsg('стоп')), false);
+  assert.equal(hasStopRequest(userMsg('хватит')), false);
+
+  // With custom pattern array
+  const customList = ['стоп', 'остановись', 'прекрати', 'хватит', 'ответь', 'петля'];
+  for (const word of customList) {
+    assert.equal(hasStopRequest(userMsg(word), customList), true, `expected custom "${word}" to match`);
+  }
+
+  // Regex pattern support
+  const regexPattern = [/\b(?:break|pause)\b/iu];
+  assert.equal(hasStopRequest(userMsg('break'), regexPattern), true);
+  assert.equal(hasStopRequest(userMsg('breakfast'), regexPattern), false);
 });
 
 test('safe integer limits accept zero only for the aggregate cap', () => {

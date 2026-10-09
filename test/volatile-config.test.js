@@ -235,13 +235,42 @@ test('live update of Volatile settings via config-reload refreshes runtime guard
   assert.equal(guard({ agent, name: 'tool_4', arguments: {}, callId: 'c2_4' }), undefined);
 });
 
-test('Config schema exports all 13 user-facing fields marked with .volatile() (#89)', () => {
+test('Config schema exports all 14 user-facing fields marked with .volatile() (#89, #103)', () => {
   assert.ok(Config, 'Config schema must be exported');
   const dict = Config.dict;
   assert.ok(dict, 'Config must have dict');
   const keys = Object.keys(dict);
-  assert.equal(keys.length, 13, 'Config schema must define exactly 13 fields');
+  assert.equal(keys.length, 14, 'Config schema must define exactly 14 fields');
   for (const [key, schema] of Object.entries(dict)) {
     assert.equal(schema.meta?.volatile, true, 'Field ' + key + ' must have meta.volatile: true');
   }
+});
+
+test('live update of stopPatterns via volatile config activates custom stop keywords (#103)', async () => {
+  let patterns = [];
+  const volatilePatterns = { get: () => patterns };
+
+  const { ctx, getGuardedFunction } = createMockContext({
+    fiberConfig: {
+      stopPatterns: volatilePatterns,
+    },
+  });
+
+  apply(ctx);
+  const guard = getGuardedFunction();
+  const agent = { session: { id: 'test-session-stop-patterns' } };
+
+  const userMsg = (text) => [{ source: { kind: 'user' }, content: [{ text }] }];
+
+  // Turn 1: without custom patterns, "хватит" does NOT trigger stop
+  await ctx.emit('agent/pre-step', { agent, turn: 1, messages: userMsg('хватит'), signal: { aborted: false } }, () => ({ kind: 'accept' }));
+  assert.equal(guard({ agent, name: 'tool_1', arguments: {}, callId: 'c1' }), undefined);
+
+  // Update volatile patterns to include custom words and trigger config reload
+  patterns = ['хватит', 'стоп'];
+  await ctx.emit('app-boot/config-reload');
+
+  // Turn 2: with updated patterns, "хватит" triggers stop denial
+  await ctx.emit('agent/pre-step', { agent, turn: 2, messages: userMsg('хватит'), signal: { aborted: false } }, () => ({ kind: 'accept' }));
+  assert.match(guard({ agent, name: 'tool_1', arguments: {}, callId: 'c2' }) || '', /LOOP_GUARD_STOP/);
 });
