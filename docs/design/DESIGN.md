@@ -3,7 +3,7 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.19 (расширения: поддержка Cordis Volatile live-настроек, синхронный ConfigForm.getSnapshot контракт, реактивная локализация LocaleSnapshot.active, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
+- **Статус:** Production-плагин, v0.2.20 (расширения: ограничение буфера streamedText, поддержка Cordis Volatile live-настроек и loader/volatile-update, языковая независимость EN/ZH и конфигурируемые stopPatterns, синхронный ConfigForm.getSnapshot контракт, реактивная локализация LocaleSnapshot.active, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
 
 ## User Surfaces
 - **Web/UI:** Dual-seat архитектура интеграции настроек плагина:
