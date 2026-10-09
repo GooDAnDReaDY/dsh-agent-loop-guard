@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.20] - 2026-10-09
+
+### Fixed
+- **Streamed Text Memory Cap (#97)**: Capped `streamedText` buffer in `AssistantOutputGuardState` to `maxAssistantBlockChars` to prevent unbounded memory growth during long streaming assistant turns.
+- **Volatile Config Reload Subscription (#98)**: Subscribed to Cordis `loader/volatile-update` event alongside `app-boot/config-reload` and `internal/update` for instant volatile settings reload without requiring manual refresh.
+- **Settings Loader Fallback Cleanup (#99)**: Removed dead `typeof sctx.settings.get === 'function'` fallback from live config reader.
+- **Language Independence & Configurable Stop Patterns (#103)**: Removed Cyrillic regex in engine core `lib/guard-state.js`, added balanced standard `en` and `zh` default patterns, and added configurable `stopPatterns` in `Config` (with `.volatile()`) and `hasStopRequest()`.
+
 ## [0.2.19] - 2026-10-08
 
 ### Fixed
