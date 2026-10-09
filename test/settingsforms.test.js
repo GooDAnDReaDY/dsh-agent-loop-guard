@@ -176,7 +176,7 @@ test('live config update via settings/document-updated event updates guard limit
   assert.equal(ranForOther, false, 'updates for other plugins must not throw or misbehave');
 });
 
-test('app-boot/config-reload and internal/update trigger config reload', () => {
+test('loader/volatile-update, app-boot/config-reload and internal/update trigger config reload (#98)', () => {
   const { ctx } = createMockContext({
     fiberConfig: { maxCallsPerRepeatGroup: 4 },
   });
@@ -184,8 +184,8 @@ test('app-boot/config-reload and internal/update trigger config reload', () => {
   apply(ctx, { maxCallsPerRepeatGroup: 5 });
 
   // Verify events are hooked on root ctx
-  const reloadListeners = ctx.on;
   assert.doesNotThrow(() => {
+    ctx.emit('loader/volatile-update');
     ctx.emit('app-boot/config-reload');
     ctx.emit('internal/update');
   });
