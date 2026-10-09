@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.21] - 2026-10-09
+
+### Fixed
+- **Canonical Design Tokens (#100)**: Replaced 38 occurrences of non-existent theme tokens (`--dsw-alias-accent-primary`, `status-success`, `status-danger`, `status-warning`, `bg-hover`, `bg-layer-hover`) in `src/client/10-styles.js` and `src/client/50-settings-card.js` with canonical DSH theme tokens (`brand-primary`, `state-success-primary`, `state-error-primary`, `state-warn-primary`, `interactive-bg-hover`), restoring native styling, status coloring, and updater button appearance across themes.
+- **Theme Token Validation Guard (#104)**: Extended `test/theme-guard.test.js` to extract all `--dsw-alias-*` tokens from `lib/client.js` and assert adherence to the canonical 79-token design system of `@deepseek-ai/dsh-client-ui-theme`, preventing regression on unknown tokens.
+
 ## [0.2.20] - 2026-10-09
 
 ### Fixed
