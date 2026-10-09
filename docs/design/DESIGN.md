@@ -3,7 +3,7 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.21 (расширения: канонические дизайн-токены DSH и валидация theme-guard, ограничение буфера streamedText, поддержка Cordis Volatile live-настроек и loader/volatile-update, языковая независимость EN/ZH и конфигурируемые stopPatterns, синхронный ConfigForm.getSnapshot контракт, реактивная локализация LocaleSnapshot.active, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
+- **Статус:** Production-плагин, v0.2.22 (расширения: безопасность telemetry route через core-сервис connection.requestRejection и sec-fetch-site, проверка x-dsh-loop-guard, изолированное хранение релизных артефактов в .dsh/artifacts с генерацией sha256, безопасный clean-pack,  канонические дизайн-токены DSH и валидация theme-guard, ограничение буфера streamedText, поддержка Cordis Volatile live-настроек и loader/volatile-update, языковая независимость EN/ZH и конфигурируемые stopPatterns, синхронный ConfigForm.getSnapshot контракт, реактивная локализация LocaleSnapshot.active, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
 
 ## User Surfaces
 - **Web/UI:** Dual-seat архитектура интеграции настроек плагина:
@@ -21,7 +21,7 @@
     - Кнопка сохранения с индикацией статуса (`Saving...`, `Saved`, ошибки валидации).
 - **API:**
   - Route: `/api/@goodandready/dsh-agent-loop-guard/update` (GET — статус версий, POST — доверенное обновление с обязательной проверкой x-dsh-plugin-update, loopback и same-origin).
-  - Route: `/api/@goodandready/dsh-agent-loop-guard/telemetry` (GET — данные телеметрии петлезащиты для loopback/same-origin; POST — доверенный сброс счётчиков с проверкой loopback remoteAddress, sec-fetch-site и совпадения origin/host, 403 при cross-origin или не-loopback).
+  - Route: `/api/@goodandready/dsh-agent-loop-guard/telemetry` (GET — данные телеметрии петлезащиты с валидацией через connection.requestRejection ядра DSH либо loopback и обязательный sec-fetch-site; POST — доверенный сброс счётчиков с проверкой connection.requestRejection, клиентского заголовка x-dsh-loop-guard: 1 и совпадения origin/host, 403 при отказе).
 - **CLI:**
   - Установка и обновление через штатный DSH CLI: `dsh plugin --profile web add @goodandready/dsh-agent-loop-guard`.
 - **Документация:**

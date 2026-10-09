@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.22] - 2026-10-09
+
+### Fixed
+- **Telemetry Route Security Boundary (#102)**: Integrated `getConnection(ctx)` and delegated request verification to DSH core service `connection.requestRejection(request)`. Enforced loopback and mandatory `sec-fetch-site` (`same-origin` or `none`) fallback when connection service is absent. Enforced `x-dsh-loop-guard: '1'` header and origin/host verification on POST telemetry reset, preventing unauthorized access or state reset from loopback/LAN bridges.
+- **Persistent Release Packaging & Clean Isolation (#101)**: Relocated production web profile tarball dependency to external persistent directory `/home/vadim/.dsh/artifacts/`. Replaced indiscriminate `rm -f *.tgz` in `clean` script with `scripts/clean-pack.mjs` to safeguard release tarballs from local repository cleanup. Added `scripts/pack-release.mjs` (`npm run pack:release`) to build, pack into persistent artifacts directory, and generate `.sha256` checksums.
+
 ## [0.2.21] - 2026-10-09
 
 ### Fixed
