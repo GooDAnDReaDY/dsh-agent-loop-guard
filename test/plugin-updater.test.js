@@ -74,12 +74,20 @@ test('isTrustedUpdateRequest enforces x-dsh-plugin-update and loopback origins',
   }), false);
 });
 
-test('isTrustedTelemetryRequest enforces loopback and same-origin validation', () => {
+test('isTrustedTelemetryRequest enforces core connection auth, sec-fetch-site, and reset guard', () => {
+  // 1. Standalone fallback (no targetCtx / connection)
   // Non-loopback remote address
   assert.equal(isTrustedTelemetryRequest({
     method: 'GET',
-    headers: { host: '192.168.1.111:3080' },
+    headers: { host: '192.168.1.111:3080', 'sec-fetch-site': 'same-origin' },
     socket: { remoteAddress: '192.168.1.50' },
+  }), false);
+
+  // Missing sec-fetch-site without core auth (e.g. unauthenticated curl from loopback)
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
   }), false);
 
   // Cross-site sec-fetch-site
@@ -89,17 +97,92 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
     socket: { remoteAddress: '127.0.0.1' },
   }), false);
 
-  // Valid GET from loopback
+  // Valid GET from loopback with same-origin
   assert.equal(isTrustedTelemetryRequest({
     method: 'GET',
     headers: { 'sec-fetch-site': 'same-origin', host: '127.0.0.1:3080' },
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
 
-  // POST without origin
+  // Valid GET from loopback with sec-fetch-site: none
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { 'sec-fetch-site': 'none', host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), true);
+
+  // 2. Core connection authentication
+  const admittedCtx = {
+    connection: { requestRejection: () => undefined },
+  };
+  const rejected401Ctx = {
+    connection: { requestRejection: () => 401 },
+  };
+  const rejected403Ctx = {
+    connection: { requestRejection: () => 403 },
+  };
+  const throwingCtx = {
+    connection: { requestRejection: () => { throw new Error('internal auth failure'); } },
+  };
+  const reflectCtx = {
+    reflect: { get: (name) => (name === 'connection' ? { requestRejection: () => undefined } : undefined) },
+  };
+
+  // Connection admits request (even without sec-fetch-site)
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }, admittedCtx), true);
+
+  // Connection reflects admits request
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }, reflectCtx), true);
+
+  // Connection rejects with 401
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }, rejected401Ctx), false);
+
+  // Connection rejects with 403
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }, rejected403Ctx), false);
+
+  // Connection throws -> fails closed
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080' },
+    socket: { remoteAddress: '127.0.0.1' },
+  }, throwingCtx), false);
+
+  // 3. POST telemetry reset validation
+  // POST without x-dsh-loop-guard header is rejected
   assert.equal(isTrustedTelemetryRequest({
     method: 'POST',
-    headers: { host: '127.0.0.1:3080' },
+    headers: {
+      origin: 'http://127.0.0.1:3080',
+      host: '127.0.0.1:3080',
+      'sec-fetch-site': 'same-origin',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }), false);
+
+  // POST without origin is rejected
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      'x-dsh-loop-guard': '1',
+      host: '127.0.0.1:3080',
+      'sec-fetch-site': 'same-origin',
+    },
     socket: { remoteAddress: '127.0.0.1' },
   }), false);
 
@@ -107,6 +190,7 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
   assert.equal(isTrustedTelemetryRequest({
     method: 'POST',
     headers: {
+      'x-dsh-loop-guard': '1',
       origin: 'http://malicious-site.com',
       host: '127.0.0.1:3080',
       'sec-fetch-site': 'cross-site',
@@ -118,6 +202,7 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
   assert.equal(isTrustedTelemetryRequest({
     method: 'POST',
     headers: {
+      'x-dsh-loop-guard': '1',
       origin: 'http://malicious-site.com',
       host: 'malicious-site.com',
       'sec-fetch-site': 'same-origin',
@@ -125,10 +210,11 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
     socket: { remoteAddress: '127.0.0.1' },
   }), false);
 
-  // Valid same-origin POST from loopback
+  // Valid same-origin POST from loopback with x-dsh-loop-guard
   assert.equal(isTrustedTelemetryRequest({
     method: 'POST',
     headers: {
+      'x-dsh-loop-guard': '1',
       origin: 'http://127.0.0.1:3080',
       host: '127.0.0.1:3080',
       'sec-fetch-site': 'same-origin',
@@ -136,10 +222,11 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
 
-  // Valid LAN origin POST matching Host
+  // Valid LAN origin POST matching Host with x-dsh-loop-guard
   assert.equal(isTrustedTelemetryRequest({
     method: 'POST',
     headers: {
+      'x-dsh-loop-guard': '1',
       origin: 'http://192.168.1.111:3080',
       host: '192.168.1.111:3080',
       'sec-fetch-site': 'same-origin',
@@ -147,16 +234,27 @@ test('isTrustedTelemetryRequest enforces loopback and same-origin validation', (
     socket: { remoteAddress: '127.0.0.1' },
   }), true);
 
-  // Cross-site origin targeting LAN telemetry
+  // Valid POST admitted via core connection with x-dsh-loop-guard
   assert.equal(isTrustedTelemetryRequest({
     method: 'POST',
     headers: {
-      origin: 'http://attacker-site.com',
-      host: '192.168.1.111:3080',
-      'sec-fetch-site': 'cross-site',
+      'x-dsh-loop-guard': '1',
+      origin: 'http://127.0.0.1:3080',
+      host: '127.0.0.1:3080',
     },
     socket: { remoteAddress: '127.0.0.1' },
-  }), false);
+  }, admittedCtx), true);
+
+  // POST rejected by core connection even with x-dsh-loop-guard
+  assert.equal(isTrustedTelemetryRequest({
+    method: 'POST',
+    headers: {
+      'x-dsh-loop-guard': '1',
+      origin: 'http://127.0.0.1:3080',
+      host: '127.0.0.1:3080',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  }, rejected401Ctx), false);
 });
 
 test('isPrivateLan recognizes private IPv4 ranges and rejects external addresses', () => {
