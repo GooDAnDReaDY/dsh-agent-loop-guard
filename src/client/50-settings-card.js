@@ -247,7 +247,7 @@
         React.createElement('span', { style: { display: 'flex', flexDirection: 'column' } },
           React.createElement('span', { style: { color: 'var(--dsw-alias-label-primary)', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 } },
             tt('title'),
-            React.createElement('span', { style: { fontSize: 11, fontWeight: 500, padding: '2px 6px', borderRadius: 6, background: 'color-mix(in srgb, var(--dsw-alias-accent-primary) 15%, transparent)', color: 'var(--dsw-alias-accent-primary)' } }, updateState.currentVersion ? 'v' + updateState.currentVersion : (updateState.checking ? '…' : '—'))
+            React.createElement('span', { style: { fontSize: 11, fontWeight: 500, padding: '2px 6px', borderRadius: 6, background: 'color-mix(in srgb, var(--dsw-alias-brand-primary) 15%, transparent)', color: 'var(--dsw-alias-brand-primary)' } }, updateState.currentVersion ? 'v' + updateState.currentVersion : (updateState.checking ? '…' : '—'))
           ),
           React.createElement('span', { style: { color: 'var(--dsw-alias-label-secondary)', fontSize: 13 } }, tt('sub'))
         ),
@@ -266,19 +266,19 @@
               React.createElement('span', {
                 style: {
                   fontSize: 11, padding: '1px 6px', borderRadius: 4,
-                  background: updateState.updateAvailable ? 'color-mix(in srgb, var(--dsw-alias-accent-primary) 15%, transparent)' : 'color-mix(in srgb, var(--dsw-alias-status-success) 15%, transparent)',
-                  color: updateState.updateAvailable ? 'var(--dsw-alias-accent-primary)' : 'var(--dsw-alias-status-success)',
+                  background: updateState.updateAvailable ? 'color-mix(in srgb, var(--dsw-alias-brand-primary) 15%, transparent)' : 'color-mix(in srgb, var(--dsw-alias-state-success-primary) 15%, transparent)',
+                  color: updateState.updateAvailable ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-state-success-primary)',
                 }
               }, updateState.checking ? tt('updateChecking') : (updateState.updateAvailable ? tt('updateAvailable', { v: updateState.latestVersion }) : (updateState.currentVersion ? tt('upToDate') : '—')))
             ),
-            updateState.error && React.createElement('span', { style: { color: 'var(--dsw-alias-status-danger)', fontSize: 12 } }, updateState.error)
+            updateState.error && React.createElement('span', { style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12 } }, updateState.error)
           ),
           updateState.updateAvailable && React.createElement('button', {
             className: 'alg-btn-updater', onClick: onTriggerUpdate, disabled: updateState.updating,
           }, updateState.updating ? tt('updating') : tt('updateNow'))
         ),
         updateState.notice && React.createElement('div', {
-          style: { padding: '8px 12px', marginBottom: 12, background: 'color-mix(in srgb, var(--dsw-alias-status-success) 10%, transparent)', color: 'var(--dsw-alias-status-success)', borderRadius: 6, fontSize: 12, border: '1px solid color-mix(in srgb, var(--dsw-alias-status-success) 20%, transparent)' }
+          style: { padding: '8px 12px', marginBottom: 12, background: 'color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent)', color: 'var(--dsw-alias-state-success-primary)', borderRadius: 6, fontSize: 12, border: '1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 20%, transparent)' }
         }, updateState.notice),
 
         React.createElement('div', {
@@ -292,10 +292,10 @@
           ),
           React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
             telemetry.error
-              ? React.createElement('span', { style: { color: 'var(--dsw-alias-status-danger)' } }, telemetry.error)
+              ? React.createElement('span', { style: { color: 'var(--dsw-alias-state-error-primary)' } }, telemetry.error)
               : telemetry.totalViolations > 0
                 ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
-                    React.createElement('div', null, tt('totalBlocked') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-status-warning)' } }, telemetry.totalViolations)),
+                    React.createElement('div', null, tt('totalBlocked') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-state-warn-primary)' } }, telemetry.totalViolations)),
                     telemetry.lastViolation && React.createElement('div', { style: { color: 'var(--dsw-alias-label-tertiary)' } },
                       tt('lastViolation') + ': ' + telemetry.lastViolation.code + ' (' + telemetry.lastViolation.tool + ')'
                     )
@@ -323,7 +323,7 @@
           React.createElement('button', {
             className: 'alg-btn-primary', onClick: onSave, disabled: saving || status !== 'ready',
           }, saving ? tt('saving') : tt('ready')),
-          msg && React.createElement('span', { style: { fontSize: 13, color: msg === tt('saved') || msg === tt('statsResetDone') ? 'var(--dsw-alias-status-success)' : 'var(--dsw-alias-status-danger)' } }, msg)
+          msg && React.createElement('span', { style: { fontSize: 13, color: msg === tt('saved') || msg === tt('statsResetDone') ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)' } }, msg)
         )
       );
 
