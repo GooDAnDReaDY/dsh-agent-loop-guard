@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, isPrivateLan, currentVersion } from '../lib/plugin-updater.js';
+import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, isPrivateLan, currentVersion, isDesktopProfile, findDesktopCliEntry, status } from '../lib/plugin-updater.js';
 
 test('isNewerVersion handles core semver and prereleases correctly', () => {
   assert.equal(isNewerVersion('0.2.4', '0.2.5'), true);
@@ -290,4 +290,70 @@ test('currentVersion safely handles valid, invalid, and corrupt manifest files',
   // Non-existent file
   const missingVer = await currentVersion(nonExistentUrl);
   assert.equal(missingVer, 'unknown');
+});
+
+test('isDesktopProfile identifies desktop environment across env, profileName, and path', () => {
+  const origEnv = { ...process.env };
+  try {
+    delete process.env.DSH_PROFILE;
+    delete process.env.DSH_DESKTOP;
+
+    assert.equal(isDesktopProfile('desktop', '/home/user/.dsh/profiles/desktop'), true);
+    assert.equal(isDesktopProfile('Desktop', '/home/user/.dsh/profiles/Desktop'), true);
+    assert.equal(isDesktopProfile('custom', '/home/user/.dsh/profiles/desktop'), true);
+    assert.equal(isDesktopProfile('web', '/home/user/.dsh/profiles/web'), false);
+    assert.equal(isDesktopProfile('default', '/home/user/.dsh/profiles/default'), false);
+
+    process.env.DSH_PROFILE = 'desktop';
+    assert.equal(isDesktopProfile('web', '/home/user/.dsh/profiles/web'), true);
+    delete process.env.DSH_PROFILE;
+
+    process.env.DSH_DESKTOP = '1';
+    assert.equal(isDesktopProfile('web', '/home/user/.dsh/profiles/web'), true);
+    delete process.env.DSH_DESKTOP;
+
+    process.env.DSH_DESKTOP = 'true';
+    assert.equal(isDesktopProfile('web', '/home/user/.dsh/profiles/web'), true);
+  } finally {
+    process.env = origEnv;
+  }
+});
+
+test('status reports isDesktop and canAutoUpdate flags correctly', async () => {
+  const options = {
+    packageName: '@goodandready/dsh-agent-loop-guard',
+    manifestUrl: new URL('../package.json', import.meta.url),
+  };
+
+  const webTarget = {
+    profileName: 'web',
+    profileDir: '/tmp/profiles/web',
+    cliEntry: '/bin/dsh',
+    isDesktop: false,
+  };
+  const webStatus = await status(options, webTarget);
+  assert.equal(webStatus.isDesktop, false);
+  assert.equal(webStatus.canAutoUpdate, true);
+
+  const desktopTargetNoCli = {
+    profileName: 'desktop',
+    profileDir: '/tmp/profiles/desktop',
+    cliEntry: undefined,
+    desktopCli: undefined,
+    isDesktop: true,
+  };
+  const desktopStatusNoCli = await status(options, desktopTargetNoCli);
+  assert.equal(desktopStatusNoCli.isDesktop, true);
+  assert.equal(desktopStatusNoCli.canAutoUpdate, false);
+
+  const desktopTargetWithCli = {
+    profileName: 'desktop',
+    profileDir: '/tmp/profiles/desktop',
+    cliEntry: '/path/to/dsh.cmd',
+    desktopCli: '/path/to/dsh.cmd',
+    isDesktop: true,
+  };
+  const desktopStatusWithCli = await status(options, desktopTargetWithCli);
+  assert.equal(desktopStatusWithCli.isDesktop, true);
+  assert.equal(desktopStatusWithCli.canAutoUpdate, true);
 });

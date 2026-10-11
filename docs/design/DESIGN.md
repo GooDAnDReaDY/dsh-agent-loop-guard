@@ -15,7 +15,7 @@
 - **DSH UI / settings / slots:**
   - Элементы интерфейса:
     - Заголовок с версионным бейджем (считываемым динамически через API обновления).
-    - Секция One-Click обновления (индикатор проверки, кнопка «Update Now» при наличии новой версии в npm).
+    - Секция One-Click обновления (индикатор проверки, кнопка «Update Now» при наличии новой версии в web-профиле; в десктопном окружении DSH Desktop или при недоступности фонового CLI отображается подсказка с рекомендацией обновиться через нативную страницу плагинов DSH Desktop).
     - Секция телеметрии живой защиты (счётчики заблокированных петель сессии и кнопка сброса статистики).
     - Форма параметров: числовые поля (`maxToolAttemptsPerTurn`, `maxProgressToolCallsPerTurn`, `maxCallsPerRepeatGroup`, `strictToolLimit`, `maxRepeatedAssistantLines`, `maxRepeatedAssistantBlocks`, `maxAssistantBlockChars`; устаревший алиас `maxCallsPerToolPerTurn` сохранён в схеме для обратной совместимости), чекбоксы (`blockExactDuplicates`, `dryRunMode`, `assistantOutputGuard`), текстовые списки (`progressToolNames`, `strictTools`).
     - Кнопка сохранения с индикацией статуса (`Saving...`, `Saved`, ошибки валидации).
@@ -82,13 +82,11 @@
   3. Модель получает структурированную инструкцию `[LOOP_GUARD_DUPLICATE] ... STOP repeating this action ...`.
   4. Модель переключается на альтернативный инструмент или переходит к синтезу ответа.
   5. В телеметрии карточки инкрементируется счётчик нарушений.
-- **Критический сценарий 2 (One-Click обновление плагина):**
+- **Критический сценарий 2 (One-Click обновление плагина и Desktop fallback):**
   1. Администратор открывает Настройки → Плагины → Agent Loop Guard.
-  2. Карточка запрашивает `/api/@goodandready/dsh-agent-loop-guard/update`.
-  3. При наличии новой версии отображается кнопка «Update Now».
-  4. Пользователь нажимает кнопку. Отправляется POST-запрос с `x-dsh-plugin-update: 1`.
-  5. DSH CLI устанавливает точную версию. Кнопка блокируется от повторных кликов.
-  6. Интерфейс сообщает: `Updated successfully. Restart DSH service to apply changes.`.
+  2. Карточка запрашивает `/api/@goodandready/dsh-agent-loop-guard/update` (возвращает `isDesktop` и `canAutoUpdate`).
+  3. В web-профиле (`isDesktop: false, canAutoUpdate: true`) при наличии новой версии отображается кнопка «Update Now». Пользователь нажимает кнопку, отправляется POST с `x-dsh-plugin-update: 1`, DSH CLI устанавливает точную версию.
+  4. В DSH Desktop (`isDesktop: true` или `canAutoUpdate: false`) при наличии новой версии кнопка «Update Now» заменяется на нативную подсказку `Update in Plugins page` (`请在插件页面更新`), направляющую пользователя в нативный менеджер плагинов десктопного приложения.
 
 ## Architecture & Reusable Components
 - **SettingsForms Lifecycle Integration (`lib/index.js`):**
@@ -101,6 +99,7 @@
 - **Plugin Updater (`lib/plugin-updater.js`):**
   - Реализация основана на каноническом шаблоне `references/plugin-updater.ts` с поддержкой безопасной проверки версий semver, loopback/same-origin валидации и флага `x-dsh-plugin-update`.
   - Маршрут эндпоинта зафиксирован как `/api/@goodandready/dsh-agent-loop-guard/update` (совпадает с полным именем npm-пакета плагина для изоляции пространства имён роутера DSH Web).
+  - Поддержка DSH Desktop окружения (#113): определение десктопного профиля (`isDesktopProfile`), поиск бинарника CLI десктопа (`findDesktopCliEntry`), передача флагов `isDesktop` и `canAutoUpdate` в статус обновления. На Windows вызов `.cmd` выполняется с опцией `shell: true`.
   - Флаг `--config.minimumReleaseAge=0` задействован в CLI-командах установки для предотвращения задержек распространения новых npm-релизов в локальной среде pnpm.
 
 ## Internationalization & Localization (Do / Don't)

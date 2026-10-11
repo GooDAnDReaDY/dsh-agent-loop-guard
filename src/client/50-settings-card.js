@@ -15,7 +15,7 @@
 
       const [updateState, setUpdateState] = React.useState({
         checking: false, updateAvailable: false, currentVersion: '', latestVersion: '',
-        updating: false, notice: '', error: '',
+        updating: false, notice: '', error: '', canAutoUpdate: true, isDesktop: false,
       });
 
       const [telemetry, setTelemetry] = React.useState({ totalViolations: 0, byCode: {}, lastViolation: null });
@@ -105,6 +105,7 @@
             setUpdateState((s) => ({
               ...s, checking: false, currentVersion: data.currentVersion || '',
               latestVersion: data.latestVersion || '', updateAvailable: !!data.updateAvailable,
+              canAutoUpdate: data.canAutoUpdate !== false, isDesktop: !!data.isDesktop,
             }));
           } catch (err) {
             if (cancelled) return;
@@ -273,9 +274,11 @@
             ),
             updateState.error && React.createElement('span', { style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12 } }, updateState.error)
           ),
-          updateState.updateAvailable && React.createElement('button', {
-            className: 'alg-btn-updater', onClick: onTriggerUpdate, disabled: updateState.updating,
-          }, updateState.updating ? tt('updating') : tt('updateNow'))
+          updateState.updateAvailable && (
+            (updateState.isDesktop || !updateState.canAutoUpdate)
+              ? React.createElement('span', { className: 'alg-updater-hint', style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, tt('updateViaPluginsPage'))
+              : React.createElement('button', { className: 'alg-btn-updater', onClick: onTriggerUpdate, disabled: updateState.updating }, updateState.updating ? tt('updating') : tt('updateNow'))
+          )
         ),
         updateState.notice && React.createElement('div', {
           style: { padding: '8px 12px', marginBottom: 12, background: 'color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent)', color: 'var(--dsw-alias-state-success-primary)', borderRadius: 6, fontSize: 12, border: '1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 20%, transparent)' }
