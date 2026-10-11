@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.23] - 2026-10-11
+
+### Fixed
+- **Desktop Updater Fallback (#113)**: Detected DSH Desktop profile via `isDesktopProfile` and located bundled desktop CLI binary via `findDesktopCliEntry`. Added `isDesktop` and `canAutoUpdate` flags to updater status endpoint. Added `shell: true` option when spawning Windows `.cmd` binaries in `installExact`. Replaced "Update Now" button in settings card with localized hint (`Update in Plugins page` / `请在插件页面更新`) when running in DSH Desktop or when automatic updates cannot be performed. Preserved standard "Update Now" flow in headless/web server profiles.
+
 ## [0.2.22] - 2026-10-09
 
 ### Fixed
