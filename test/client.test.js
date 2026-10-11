@@ -621,6 +621,89 @@ test('card reads settings from ConfigForm.getSnapshot, unpacks snap.value, and r
   assert.ok(formSubscriber, 'Form subscriber should be attached');
 });
 
+test('updater renders plugins page hint in desktop mode and update button in web profile', () => {
+  const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
+
+  function renderWithUpdateState(customUpdateState) {
+    let loadedModule = null;
+    const context = vm.createContext({
+      window: {
+        __ModuleLoader__: { load: (mod) => { loadedModule = mod; } },
+      },
+    });
+    vm.runInContext(clientCode, context);
+
+    let capturedComponent = null;
+    const createdElements = [];
+    let stateIdx = 0;
+    const mockReact = {
+      createElement: (type, props, ...children) => {
+        const el = { type, props: props || {}, children };
+        createdElements.push(el);
+        return el;
+      },
+      isValidElement: (el) => el && typeof el === 'object' && 'type' in el && 'props' in el,
+      cloneElement: (el, newProps) => {
+        const cloned = { ...el, props: { ...el.props, ...newProps } };
+        createdElements.push(cloned);
+        return cloned;
+      },
+      useState: (init) => {
+        const idx = stateIdx++;
+        if (idx === 0) return [true, () => {}];
+        if (idx === 5) return [customUpdateState, () => {}];
+        return [init, () => {}];
+      },
+      useEffect: () => {},
+      useRef: () => ({ current: null }),
+    };
+
+    const factoryExports = loadedModule.factory(() => mockReact);
+    const mockCtx = {
+      slots: {
+        inject: (name, cb) => cb(),
+        register: (opts, comp) => { capturedComponent = comp; },
+      },
+    };
+    factoryExports.apply(mockCtx);
+    const element = capturedComponent({ ctx: mockCtx });
+    element.type(element.props);
+    return createdElements;
+  }
+
+  const desktopEls = renderWithUpdateState({
+    checking: false,
+    updateAvailable: true,
+    currentVersion: '0.2.22',
+    latestVersion: '0.2.23',
+    updating: false,
+    notice: '',
+    error: '',
+    canAutoUpdate: false,
+    isDesktop: true,
+  });
+  const desktopHint = desktopEls.find((el) => el.props?.className === 'alg-updater-hint');
+  const desktopBtn = desktopEls.find((el) => el.props?.className === 'alg-btn-updater');
+  assert.ok(desktopHint, 'Desktop mode should render alg-updater-hint');
+  assert.equal(desktopBtn, undefined, 'Desktop mode should not render alg-btn-updater');
+
+  const webEls = renderWithUpdateState({
+    checking: false,
+    updateAvailable: true,
+    currentVersion: '0.2.22',
+    latestVersion: '0.2.23',
+    updating: false,
+    notice: '',
+    error: '',
+    canAutoUpdate: true,
+    isDesktop: false,
+  });
+  const webHint = webEls.find((el) => el.props?.className === 'alg-updater-hint');
+  const webBtn = webEls.find((el) => el.props?.className === 'alg-btn-updater');
+  assert.equal(webHint, undefined, 'Web profile should not render alg-updater-hint');
+  assert.ok(webBtn, 'Web profile should render alg-btn-updater');
+});
+
 test('client modularization: lib/client.js is synchronized with src/client fragments and under 600 lines', () => {
   const srcDir = path.resolve(__dirname, '../src/client');
   const clientPath = path.resolve(__dirname, '../lib/client.js');
