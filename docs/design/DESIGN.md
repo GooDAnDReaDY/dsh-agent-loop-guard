@@ -6,12 +6,10 @@
 - **Статус:** Production-плагин, v0.2.23 (расширения: безопасность telemetry route через core-сервис connection.requestRejection и sec-fetch-site, проверка x-dsh-loop-guard, изолированное хранение релизных артефактов в .dsh/artifacts с генерацией sha256, безопасный clean-pack,  канонические дизайн-токены DSH и валидация theme-guard, ограничение буфера streamedText, поддержка Cordis Volatile live-настроек и loader/volatile-update, языковая независимость EN/ZH и конфигурируемые stopPatterns, синхронный ConfigForm.getSnapshot контракт, реактивная локализация LocaleSnapshot.active, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
 
 ## User Surfaces
-- **Web/UI:** Dual-seat архитектура интеграции настроек плагина:
-  1. **Страница плагинов ядра DSH (основная посадка):**
-     - Слот `plugins.row.config`: привязка кнопки конфигурации строки плагина в списке плагинов ядра по ключу `<package>#<rowId>` (`@goodandready/dsh-agent-loop-guard#@goodandready/dsh-agent-loop-guard`).
-     - Слот `plugins.item`: отображение нативной страницы настроек плагина. Поддерживает режимы `view: 'summary'` (компактный однострочный статус для списка) и `view: 'page'` (полная форма настроек в bare-контейнере `.alg-page` без дублирования внешней рамки карточки).
-  2. **Вкладка настроек плагинов (fallback/совместимость):**
-     - Слот `settings.plugin.item` (`key: @goodandready/dsh-agent-loop-guard`, `order: 95`): автономная сворачиваемая карточка `.alg-card` с интерактивным шевроном раскрытия для хостов, использующих классическую модель настроек.
+- **Web/UI:** Архитектура интеграции настроек плагина на странице плагинов ядра DSH:
+  - Слот `plugins.row.config`: привязка кнопки конфигурации строки плагина в списке плагинов ядра по ключу `<package>#<rowId>` (`@goodandready/dsh-agent-loop-guard#@goodandready/dsh-agent-loop-guard`).
+  - Слот `plugins.item`: отображение нативной страницы настроек плагина. Поддерживает режимы `view: 'summary'` (компактный однострочный статус для списка) и `view: 'page'` (полная форма настроек в bare-контейнере `.alg-page` без дублирования внешней рамки карточки).
+  - Устаревший слот `settings.plugin.item` удален (#116) в соответствии со стандартом современного ядра DSH.
 - **DSH UI / settings / slots:**
   - Элементы интерфейса:
     - Заголовок с версионным бейджем (считываемым динамически через API обновления).
@@ -100,7 +98,7 @@
   - Реализация основана на каноническом шаблоне `references/plugin-updater.ts` с поддержкой безопасной проверки версий semver, loopback/same-origin валидации и флага `x-dsh-plugin-update`.
   - Маршрут эндпоинта зафиксирован как `/api/@goodandready/dsh-agent-loop-guard/update` (совпадает с полным именем npm-пакета плагина для изоляции пространства имён роутера DSH Web).
   - Поддержка DSH Desktop окружения (#113): определение десктопного профиля (`isDesktopProfile`), поиск бинарника CLI десктопа (`findDesktopCliEntry`), передача флагов `isDesktop` и `canAutoUpdate` в статус обновления. На Windows вызов `.cmd` выполняется с опцией `shell: true`.
-  - Флаг `--config.minimumReleaseAge=0` задействован в CLI-командах установки для предотвращения задержек распространения новых npm-релизов в локальной среде pnpm.
+  - Защита цепочки поставок pnpm (#116): флаг `--config.minimumReleaseAge=0` удален из CLI-команд установки для строгого соблюдения политики выдержки релизов и защиты экосистемы.
 
 ## Internationalization & Localization (Do / Don't)
 - **Do:**

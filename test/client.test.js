@@ -49,7 +49,7 @@ test('client.js registers with ModuleLoader and defines exports properly without
   assert.equal(typeof factoryExports.apply, 'function');
 });
 
-test('apply registers settings.plugin.item via slots.inject when available', () => {
+test('apply registers slots via slots.inject when available (#116)', () => {
   const clientCode = fs.readFileSync(path.resolve(__dirname, '../lib/client.js'), 'utf8');
 
   let loadedModule = null;
@@ -74,19 +74,19 @@ test('apply registers settings.plugin.item via slots.inject when available', () 
 
   const factoryExports = loadedModule.factory(mockRequire);
 
-  let injectedSlot = null;
-  let injectCallback = null;
-  let registeredSlot = null;
+  const injectedSlots = [];
+  const injectCallbacks = [];
+  const registeredSlots = [];
 
   const mockCtx = {
     locale: { register: () => {} },
     slots: {
       inject: (name, cb) => {
-        injectedSlot = name;
-        injectCallback = cb;
+        injectedSlots.push(name);
+        injectCallbacks.push(cb);
       },
       register: (opts, comp) => {
-        registeredSlot = opts;
+        registeredSlots.push(opts);
       },
     },
   };
@@ -95,15 +95,18 @@ test('apply registers settings.plugin.item via slots.inject when available', () 
     factoryExports.apply(mockCtx);
   });
 
-  assert.equal(injectedSlot, 'settings.plugin.item', 'should subscribe via slots.inject');
-  assert.equal(registeredSlot, null, 'should not register synchronously before inject callback fires');
+  assert.deepEqual(injectedSlots, ['plugins.row.config', 'plugins.item'], 'should subscribe plugins seats via slots.inject');
+  assert.equal(registeredSlots.length, 0, 'should not register synchronously before inject callback fires');
 
-  // Trigger inject callback
-  injectCallback();
-  assert.ok(registeredSlot, 'should register when inject callback runs');
-  assert.equal(registeredSlot.name, 'settings.plugin.item');
-  assert.equal(registeredSlot.key, '@goodandready/dsh-agent-loop-guard');
-  assert.equal(registeredSlot.locale, '@goodandready/dsh-agent-loop-guard');
+  // Trigger inject callbacks
+  for (const cb of injectCallbacks) {
+    cb();
+  }
+  assert.equal(registeredSlots.length, 2, 'should register both slots when inject callbacks run');
+  assert.equal(registeredSlots[0].name, 'plugins.row.config');
+  assert.equal(registeredSlots[1].name, 'plugins.item');
+  assert.equal(registeredSlots[1].id, '@goodandready/dsh-agent-loop-guard');
+  assert.equal(registeredSlots[1].locale, '@goodandready/dsh-agent-loop-guard');
 });
 
 test('apply safely handles direct slot registration if slots.inject throws or is unavailable', () => {

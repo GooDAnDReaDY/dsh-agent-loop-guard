@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, isPrivateLan, currentVersion, isDesktopProfile, findDesktopCliEntry, status } from '../lib/plugin-updater.js';
@@ -356,4 +357,13 @@ test('status reports isDesktop and canAutoUpdate flags correctly', async () => {
   const desktopStatusWithCli = await status(options, desktopTargetWithCli);
   assert.equal(desktopStatusWithCli.isDesktop, true);
   assert.equal(desktopStatusWithCli.canAutoUpdate, true);
+});
+
+test('updater does not disable pnpm minimumReleaseAge supply-chain guard (#116)', () => {
+  const updaterCode = fs.readFileSync(new URL('../lib/plugin-updater.js', import.meta.url), 'utf8');
+  assert.equal(
+    updaterCode.includes('--config.minimumReleaseAge=0'),
+    false,
+    'lib/plugin-updater.js must never bypass pnpm quarantine via --config.minimumReleaseAge=0'
+  );
 });
