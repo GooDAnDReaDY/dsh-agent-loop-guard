@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.24] - 2026-10-15
+
+### Fixed
+- **Supply-Chain Guard Compliance (#116)**: Removed `--config.minimumReleaseAge=0` override in plugin updater (`lib/plugin-updater.js`), enforcing compliance with pnpm global supply-chain quarantine and release age delay policies across fleet environments.
+- **Client Slots Cleanup (#116)**: Removed deprecated dead slot `settings.plugin.item` from `src/client/60-slots.js` and unified configuration card rendering across `plugins.row.config` and `plugins.item`, reducing bundle size and keeping `lib/client.js` at 582 lines (under the 600 line limit).
+
 ## [0.2.23] - 2026-10-11
 
 ### Fixed
