@@ -56,20 +56,8 @@
             locale: NS,
             inject: () => ({ ctx }),
           },
-          (props) => React.createElement(PluginItem, { ...props, ctx: (props && props.ctx) || ctx })
-        )
-      );
-
-      registerSlotWhenReady('settings.plugin.item', () =>
-        ctx.slots.register(
-          {
-            name: 'settings.plugin.item',
-            key: NS,
-            order: 95,
-            locale: NS,
-            inject: () => ({ ctx }),
-          },
           (props) => React.createElement(PluginCard, { ...props, ctx: (props && props.ctx) || ctx })
         )
       );
+
     };

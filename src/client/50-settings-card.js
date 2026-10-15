@@ -5,9 +5,10 @@
       maxRepeatedAssistantBlocks: 5, maxAssistantBlockChars: 16384,
     };
 
-    function PluginCard({ ctx: _ctx, t, bare }) {
+    function PluginCard({ ctx: _ctx, t, bare, ...props }) {
+      const isBare = Boolean(bare || props?.view === 'page');
       const [expanded, setExpanded] = React.useState(false);
-      const isExpanded = Boolean(bare || expanded);
+      const isExpanded = Boolean(isBare || expanded);
       const [draft, setDraft] = React.useState({ ...DEFAULTS, progressToolNamesText: 'todo_write', strictToolsText: '' });
       const [status, setStatus] = React.useState('loading');
       const [saving, setSaving] = React.useState(false);
@@ -330,7 +331,7 @@
         )
       );
 
-      if (bare) {
+      if (isBare) {
         return React.createElement('div', { className: 'alg-page' }, body);
       }
       return React.createElement('li', { className: 'alg-card' }, header, expanded && body);
@@ -342,5 +343,6 @@
           style: { color: 'var(--dsw-alias-label-secondary)', fontSize: 13 }
         }, en.sub);
       }
-      return React.createElement(PluginCard, { ...props, bare: true });
+      const isBare = Boolean(props && (props.bare || props.view === 'page'));
+      return React.createElement(PluginCard, { ...props, bare: isBare });
     }
