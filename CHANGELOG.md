@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.2.24] - 2026-10-15
+
+### Fixed
+- **Supply-Chain Guard Compliance (#116)**: Removed `--config.minimumReleaseAge=0` override in plugin updater (`lib/plugin-updater.js`), enforcing compliance with pnpm global supply-chain quarantine and release age delay policies across fleet environments.
+- **Client Slots Cleanup (#116)**: Removed deprecated dead slot `settings.plugin.item` from `src/client/60-slots.js` and unified configuration card rendering across `plugins.row.config` and `plugins.item`, reducing bundle size and keeping `lib/client.js` at 582 lines (under the 600 line limit).
+
+## [0.2.23] - 2026-10-11
+
+### Fixed
+- **Desktop Updater Fallback (#113)**: Detected DSH Desktop profile via `isDesktopProfile` and located bundled desktop CLI binary via `findDesktopCliEntry`. Added `isDesktop` and `canAutoUpdate` flags to updater status endpoint. Added `shell: true` option when spawning Windows `.cmd` binaries in `installExact`. Replaced "Update Now" button in settings card with localized hint (`Update in Plugins page` / `请在插件页面更新`) when running in DSH Desktop or when automatic updates cannot be performed. Preserved standard "Update Now" flow in headless/web server profiles.
+
+## [0.2.22] - 2026-10-09
+
+### Fixed
+- **Telemetry Route Security Boundary (#102)**: Integrated `getConnection(ctx)` and delegated request verification to DSH core service `connection.requestRejection(request)`. Enforced loopback and mandatory `sec-fetch-site` (`same-origin` or `none`) fallback when connection service is absent. Enforced `x-dsh-loop-guard: '1'` header and origin/host verification on POST telemetry reset, preventing unauthorized access or state reset from loopback/LAN bridges.
+- **Persistent Release Packaging & Clean Isolation (#101)**: Relocated production web profile tarball dependency to external persistent directory `/home/vadim/.dsh/artifacts/`. Replaced indiscriminate `rm -f *.tgz` in `clean` script with `scripts/clean-pack.mjs` to safeguard release tarballs from local repository cleanup. Added `scripts/pack-release.mjs` (`npm run pack:release`) to build, pack into persistent artifacts directory, and generate `.sha256` checksums.
+
+## [0.2.21] - 2026-10-09
+
+### Fixed
+- **Canonical Design Tokens (#100)**: Replaced 38 occurrences of non-existent theme tokens (`--dsw-alias-accent-primary`, `status-success`, `status-danger`, `status-warning`, `bg-hover`, `bg-layer-hover`) in `src/client/10-styles.js` and `src/client/50-settings-card.js` with canonical DSH theme tokens (`brand-primary`, `state-success-primary`, `state-error-primary`, `state-warn-primary`, `interactive-bg-hover`), restoring native styling, status coloring, and updater button appearance across themes.
+- **Theme Token Validation Guard (#104)**: Extended `test/theme-guard.test.js` to extract all `--dsw-alias-*` tokens from `lib/client.js` and assert adherence to the canonical 79-token design system of `@deepseek-ai/dsh-client-ui-theme`, preventing regression on unknown tokens.
+
+## [0.2.20] - 2026-10-09
+
+### Fixed
+- **Streamed Text Memory Cap (#97)**: Capped `streamedText` buffer in `AssistantOutputGuardState` to `maxAssistantBlockChars` to prevent unbounded memory growth during long streaming assistant turns.
+- **Volatile Config Reload Subscription (#98)**: Subscribed to Cordis `loader/volatile-update` event alongside `app-boot/config-reload` and `internal/update` for instant volatile settings reload without requiring manual refresh.
+- **Settings Loader Fallback Cleanup (#99)**: Removed dead `typeof sctx.settings.get === 'function'` fallback from live config reader.
+- **Language Independence & Configurable Stop Patterns (#103)**: Removed Cyrillic regex in engine core `lib/guard-state.js`, added balanced standard `en` and `zh` default patterns, and added configurable `stopPatterns` in `Config` (with `.volatile()`) and `hasStopRequest()`.
+
+## [0.2.19] - 2026-10-08
+
+### Fixed
+- **Settings Contract & Snapshot Reader (#90)**: Replaced non-existent  with synchronous , unpacked settings values from  ( contract) instead of , and bound reactive updates through .
+- **Locale Resolution & Reactivity (#40)**: Read active locale identifier from  in  with fallback to  and , ensuring settings card respects the host language selection over browser .
+- **Volatile Schema Verification (#89)**: Verified and tested that all 13 user-facing  schema fields carry  (), ensuring live configuration registration under DSH 0.2.0.
+
 ## [0.2.18] - 2026-09-30
 
 ### Fixed
