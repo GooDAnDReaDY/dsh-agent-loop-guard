@@ -172,11 +172,11 @@ test('non-array user content is safe', () => {
   assert.equal(hasStopRequest([{ source: { kind: 'user' }, content: 'stop' }]), false);
 });
 
-test('stop request recognizes default EN and ZH policy keywords and ignores neutral text (#103)', () => {
+test('stop request recognizes default EN and ZH policy keywords and ignores neutral text (#103, #120)', () => {
   const userMsg = (text) => [{ source: { kind: 'user' }, content: [{ text }] }];
   const positiveEn = [
     'stop', 'STOP', 'Stop!', 'halt', 'HALT', 'cancel', 'Cancel', 'abort', 'ABORT',
-    'terminate', 'answer', 'answer now', 'Answer now!'
+    'terminate', 'please stop', 'stop now', 'Stop. Tell me what happened.'
   ];
   for (const word of positiveEn) {
     assert.equal(hasStopRequest(userMsg(word)), true, `expected "${word}" to be recognized as stop request`);
@@ -184,18 +184,47 @@ test('stop request recognizes default EN and ZH policy keywords and ignores neut
 
   const positiveZh = [
     '停止', '请停止', '暂停', '请暂停执行', '取消', '取消操作',
-    '终止', '请终止', '回答', '请回答', '死循环', '检测到死循环'
+    '终止', '请终止', '死循环', '检测到死循环'
   ];
   for (const word of positiveZh) {
     assert.equal(hasStopRequest(userMsg(word)), true, `expected "${word}" to be recognized as stop request`);
   }
 
   const neutral = [
-    'non-stop flight', 'answering machine', 'postponed'
+    'non-stop flight', 'answering machine', 'postponed',
+    'answer', 'answer now', 'Answer now!', 'answer in Russian', 'please answer using files',
+    'stop the service and fix it', 'stop the dev server and fix the bug',
+    '回答', '请回答', '不要停止服务', '停止服务并重启'
   ];
   for (const text of neutral) {
     assert.equal(hasStopRequest(userMsg(text)), false, `expected "${text}" to NOT be recognized as stop request`);
   }
+});
+
+test('stop request inspects only the last user message and does not leak across turns (#120)', () => {
+  const messagesTurn1 = [
+    { source: { kind: 'user' }, content: [{ text: 'stop' }] }
+  ];
+  assert.equal(hasStopRequest(messagesTurn1), true);
+
+  const messagesTurn2 = [
+    { source: { kind: 'user' }, content: [{ text: 'stop' }] },
+    { role: 'assistant', content: [{ text: 'Stopped. What next?' }] },
+    { source: { kind: 'user' }, content: [{ text: 'continue and fix the bug' }] }
+  ];
+  assert.equal(hasStopRequest(messagesTurn2), false);
+
+  const messagesTurn3RoleUser = [
+    { source: { kind: 'user' }, content: [{ text: 'stop' }] },
+    { role: 'user', content: [{ text: 'run tests' }] }
+  ];
+  assert.equal(hasStopRequest(messagesTurn3RoleUser), false);
+
+  const messagesTurn4StopAgain = [
+    { source: { kind: 'user' }, content: [{ text: 'continue' }] },
+    { role: 'user', content: [{ text: 'please stop immediately!' }] }
+  ];
+  assert.equal(hasStopRequest(messagesTurn4StopAgain), true);
 });
 
 test('stop request supports configurable customPatterns (#103)', () => {
