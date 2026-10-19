@@ -230,3 +230,20 @@ test('streamedText is capped at maxAssistantBlockChars and does not grow unbound
   assert.equal(sessState.blockText.length, 128);
   assert.equal(sessState.streamedText.length, 128);
 });
+
+test('streaming text without newlines bounds pending buffer to maxAssistantBlockChars (#121)', () => {
+  const maxBlockChars = 256;
+  const state = new AssistantOutputGuardState({
+    maxAssistantBlockChars: maxBlockChars,
+  });
+  // Stream 5MB of text without newlines in 64KB chunks
+  const chunkSize = 64 * 1024;
+  const chunk = 'x'.repeat(chunkSize);
+  const totalChunks = 80; // ~5.24 MB
+  for (let i = 0; i < totalChunks; i++) {
+    const hit = state.observeText('sess-pending-bound', { turn: 1, step: 1, text: chunk });
+    assert.equal(hit, undefined);
+  }
+  const sessState = state.stateFor('sess-pending-bound');
+  assert.ok(sessState.pending.length <= maxBlockChars, `pending must be <= ${maxBlockChars}, got ${sessState.pending.length}`);
+});

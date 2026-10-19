@@ -3,7 +3,7 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.23 (расширения: безопасность telemetry route через core-сервис connection.requestRejection и sec-fetch-site, проверка x-dsh-loop-guard, изолированное хранение релизных артефактов в .dsh/artifacts с генерацией sha256, безопасный clean-pack,  канонические дизайн-токены DSH и валидация theme-guard, ограничение буфера streamedText, поддержка Cordis Volatile live-настроек и loader/volatile-update, языковая независимость EN/ZH и конфигурируемые stopPatterns, синхронный ConfigForm.getSnapshot контракт, реактивная локализация LocaleSnapshot.active, интеграция жизненного цикла SettingsForms ядра DSH, dual-seat архитектура слотов, модульная клиентская часть, SHA-256 хэширование аргументов, One-Click Updater, EN/ZH i18n, телеметрия, адаптивные квоты, dry-run, a11y, DSH design system, theme-guard).
+- **Статус:** Production-плагин, v0.2.25 (изоляция детектора команд остановки (#120) по последнему сообщению пользователя и строгим директивам без ложных срабатываний, потокобезопасное ограничение буфера pending ассистента (#121) через maxAssistantBlockChars с пошаговым indexOf, безопасность telemetry route через core-сервис connection.requestRejection и sec-fetch-site, проверка x-dsh-loop-guard, изолированное хранение релизных артефактов в .dsh/artifacts с sha256, безопасный clean-pack, канонические дизайн-токены DSH, Cordis Volatile live-настройки, dual-seat слоты, One-Click Updater, EN/ZH i18n).
 
 ## User Surfaces
 - **Web/UI:** Архитектура интеграции настроек плагина на странице плагинов ядра DSH:
@@ -87,6 +87,14 @@
   4. В DSH Desktop (`isDesktop: true` или `canAutoUpdate: false`) при наличии новой версии кнопка «Update Now» заменяется на нативную подсказку `Update in Plugins page` (`请在插件页面更新`), направляющую пользователя в нативный менеджер плагинов десктопного приложения.
 
 ## Architecture & Reusable Components
+- **Stop Command Detection & History Isolation (#120):**
+  - Детекция команд остановки (`hasStopRequest`) анализирует исключительно последнее сообщение пользователя (`source.kind === 'user'` или `role === 'user'`).
+  - Устранена межходовая утечка (cross-turn leakage), когда команда остановки в первом ходу навсегда блокировала инструменты в последующих ходах диалога.
+  - Слово `answer` и `回答` удалены из дефолтных паттернов остановки во избежание ложных срабатываний на обычные фразы («answer in Russian», «please answer using files», «请回答这个问题»).
+  - По умолчанию распознаются только явные директивные команды остановки (`isDefaultStopRequest`: «stop», «halt», «cancel», «abort», «terminate», «please stop», «停止», «暂停», «取消», «终止», «死循环» и их прямые императивные формы). Фразы вида «stop the service and fix it» инструментальные вызовы не блокируют.
+- **Bounded Streaming Output Buffer (#121):**
+  - В `AssistantOutputGuardState.observeText` при получении потокового вывода без символов новой строки `state.pending` ограничен лимитом `this.maxAssistantBlockChars`.
+  - Поиск переносов строк выполняется инкрементально через `indexOf('\n')` вместо аллокации промежуточного массива через `split(/\n/gu)`, гарантируя сложность O(chunk.length) по памяти и времени даже при непрерывном потоке minified JSON или base64.
 - **SettingsForms Lifecycle Integration (`lib/index.js`):**
   - Поддержка современного API `SettingsForms` (DSH 0.1.7-rc.1+ и 0.2.0): сервис `settings` не требуется на верхнем уровне (`inject` опционален).
   - При наличии сервиса регистрируется политика страницы `sctx.settings.configure({ auto: false }, ctx.fiber)` с возвратом диспозера внутри `sctx.effect`.
