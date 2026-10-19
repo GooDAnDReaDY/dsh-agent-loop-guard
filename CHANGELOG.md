@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.25] - 2026-10-19
+
+### Fixed
+- **Stop Command Detection & History Isolation (#120)**: Hardened `hasStopRequest` in `lib/guard-state.js` to inspect only the latest user message (`source.kind === 'user'` or `role === 'user'`), eliminating cross-turn leakage where a past stop command in turn 1 permanently locked tools in subsequent turns. Removed broad keywords `answer` and `回答` from default stop patterns, and introduced `isDefaultStopRequest` to require explicit standalone or imperative stop commands ("stop", "halt", "cancel", "abort", "terminate", "please stop", "停止", "暂停", "取消", "终止", "死循环"), eliminating false-positive blocks on regular user requests ("answer in Russian", "please answer using files", "stop the service and fix it").
+- **Bounded Streaming Output Buffer (#121)**: Bounded `state.pending` buffer in `AssistantOutputGuardState.observeText` to `maxAssistantBlockChars` and parsed newlines incrementally via `indexOf('\n')` instead of `split(/\n/gu)`, preventing unbounded memory growth and O(N^2) CPU stalls during long streaming outputs without line breaks (such as minified JSON or base64 payloads).
+- **Issue Label Deduplication (#122)**: Reassigned affected issues to canonical project labels and cleaned up duplicate labels in Gitea repository.
+
 ## [0.2.24] - 2026-10-15
 
 ### Fixed
