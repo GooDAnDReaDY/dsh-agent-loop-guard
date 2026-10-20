@@ -87,6 +87,10 @@
   4. В DSH Desktop (`isDesktop: true` или `canAutoUpdate: false`) при наличии новой версии кнопка «Update Now» заменяется на нативную подсказку `Update in Plugins page` (`请在插件页面更新`), направляющую пользователя в нативный менеджер плагинов десктопного приложения.
 
 ## Architecture & Reusable Components
+- **Tools Result Payload Integration (#125, gh-1):**
+  - В среде выполнения DSH (`dsh-tools`) событие `tools/result` диспатчится с двумя параметрами: `(execution, result)`. Контекст `execution` заморожен (`Object.freeze`) и содержит только метаданные вызова (`callId`, `arguments`, `agent` и т.д.), в то время как результат выполнения инструмента передаётся вторым аргументом `result`.
+  - В `lib/index.js` слушатель `tools/result` принимает `(execution, result)` и передаёт результат в `state.recordResult(execution?.agent, { ...execution, result }, result)`.
+  - В `lib/guard-state.js` функция `outcomeFromExecution` извлекает `result` из аргументов, благодаря чему успешные выполнения инструментов корректно распознаются как продуктивный прогресс (`productive: true`), инкрементируют `progressEpoch` и очищают `exactGroups`, предотвращая ложное срабатывание `LOOP_GUARD_DUPLICATE` и блокировку хода в `answerOnly`.
 - **Stop Command Detection & History Isolation (#120):**
   - Детекция команд остановки (`hasStopRequest`) анализирует исключительно последнее сообщение пользователя (`source.kind === 'user'` или `role === 'user'`).
   - Устранена межходовая утечка (cross-turn leakage), когда команда остановки в первом ходу навсегда блокировала инструменты в последующих ходах диалога.
