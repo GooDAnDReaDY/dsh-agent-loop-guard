@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.26] - 2026-10-20
+
+### Fixed
+- **Tools Result Payload Forwarding (#125, gh-1)**: Fixed tool outcome tracking in `lib/index.js` where `tools/result` event listener only captured the first argument (`execution`), losing the actual result payload passed as the second argument (`result`) by the DSH runtime (`dsh-tools`). Updated `tools/result` to capture `(execution, result)` and forward `{ ...execution, result }` to `state.recordResult()`. Updated `outcomeFromExecution` and `recordResult` in `lib/guard-state.js` to accept `maybeResult` and extract result payload, properly recognizing successful tool executions as productive progress (`productive: true`), advancing `progressEpoch`, and clearing `exactGroups`. Resolves false-positive `LOOP_GUARD_DUPLICATE` blocks on legitimate retries and eliminates catastrophic lockouts into `answerOnly` mode.
+
 ## [0.2.25] - 2026-10-19
 
 ### Fixed
