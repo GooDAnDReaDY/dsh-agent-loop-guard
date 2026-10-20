@@ -466,3 +466,84 @@ test('subsequent calls after violation retain original violation code in telemet
   assert.equal(telemetry.byCode.LOOP_GUARD_STOP || 0, 0);
   assert.equal(telemetry.byCode.LOOP_GUARD_DUPLICATE, 3);
 });
+
+test('tools/result payload forwarding: recordResult accepts (agent, execution, result) and advances progress (#125, gh-1)', () => {
+  const state = new LoopGuardState({ ...config, blockExactDuplicates: true });
+  state.beginTurn('agent-gh1', 1, false);
+
+  // Call 1
+  assert.equal(state.denyReason('agent-gh1', 'ops_copy', { src: 'a', dst: 'b' }, 'c1'), undefined);
+  state.commitCall('agent-gh1', 'c1');
+
+  // DSH dispatches tools/result with (exec, result) where exec has NO result property and is frozen
+  const exec1 = Object.freeze({
+    agent: 'agent-gh1',
+    callId: 'c1',
+    name: 'ops_copy',
+    arguments: { src: 'a', dst: 'b' },
+  });
+  const result1 = { content: [{ type: 'text', text: 'Copied successfully' }] };
+
+  const outcome1 = state.recordResult('agent-gh1', exec1, result1);
+  assert.equal(outcome1.known, true);
+  assert.equal(outcome1.productive, true);
+  assert.equal(state.stateFor('agent-gh1').progressEpoch, 1);
+
+  // Call 2 with identical arguments after a successful call must be ALLOWED
+  assert.equal(state.denyReason('agent-gh1', 'ops_copy', { src: 'a', dst: 'b' }, 'c2'), undefined);
+  assert.equal(state.stateFor('agent-gh1').answerOnly, false);
+});
+
+test('tools/result listener in plugin index passes (execution, result) to state (#125, gh-1)', async () => {
+  const events = new Map();
+  let guardedFn = null;
+  const mockCtx = {
+    on: (evt, handler) => {
+      if (!events.has(evt)) events.set(evt, []);
+      events.get(evt).push(handler);
+    },
+    emit: (evt, ...args) => {
+      const list = events.get(evt) || [];
+      for (const h of list) h(...args);
+    },
+    inject: () => {},
+    effect: (fn) => fn?.(),
+    tools: {
+      guard: (fn) => {
+        guardedFn = fn;
+        return fn;
+      },
+    },
+    agents: { get: () => ({ cancel: () => {} }) },
+    logger: { debug: () => {}, warn: () => {}, info: () => {} },
+  };
+
+  const { apply } = await import('../lib/index.js');
+  apply(mockCtx, { blockExactDuplicates: true });
+
+  const resultHandlers = events.get('tools/result') || [];
+  assert.equal(resultHandlers.length, 1);
+  const resultHandler = resultHandlers[0];
+  assert.equal(resultHandler.length, 2, 'tools/result handler must accept 2 parameters (execution, result)');
+
+  const preStepHandler = (events.get('agent/pre-step') || [])[0];
+  const executeHandler = (events.get('tools/execute') || [])[0];
+
+  // 1. Turn start
+  await preStepHandler({ agent: 'agent-wire', turn: 1, messages: [], signal: { aborted: false } }, async () => ({ kind: 'accept' }));
+
+  // 2. Call 1: tool guard check and commit
+  const exec1 = Object.freeze({ agent: 'agent-wire', callId: 'call-1', name: 'ops_read', arguments: { path: 'foo' } });
+  const decision1 = await guardedFn(exec1);
+  assert.equal(decision1, undefined, 'Call 1 should be allowed (undefined denyReason)');
+  await executeHandler(exec1, async () => {});
+
+  // 3. Emit tools/result with separate execution and result
+  const res1 = { content: [{ type: 'text', text: 'file content' }] };
+  resultHandler(exec1, res1);
+
+  // 4. Call 2 with identical arguments: MUST be allowed (undefined denyReason) because call 1 was productive!
+  const exec2 = Object.freeze({ agent: 'agent-wire', callId: 'call-2', name: 'ops_read', arguments: { path: 'foo' } });
+  const decision2 = await guardedFn(exec2);
+  assert.equal(decision2, undefined, 'Call 2 should be allowed after productive call 1');
+});
