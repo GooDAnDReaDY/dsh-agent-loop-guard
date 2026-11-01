@@ -107,6 +107,7 @@ When a loop is detected, the guard rejects the call with structured diagnostics 
 | `LOOP_GUARD_LIMIT` | Total non-productive tool attempts since last successful progress | `maxToolAttemptsPerTurn` (64) | Caps turn exploratory budget |
 | `LOOP_GUARD_PROGRESS_LIMIT` | Successive invocations of progress tools without content changes | `maxProgressToolCallsPerTurn` (16) | Prevents infinite todo-writing loops |
 | `LOOP_GUARD_OUTPUT` | Assistant generated identical lines or multi-line blocks | `maxRepeatedAssistantLines` (5) | Cancels session cleanly via `agent.cancel()` |
+| `LOOP_GUARD_PSEUDO_TOOL_CALL` | Consecutive completed turns outputting pseudo tool-call syntax (`<invoke>`, etc.) with 0 real tools | `pseudoToolCallThreshold` (3) | Cancels session cleanly via `agent.cancel()` |
 
 ### 3. Assistant Output Stream Guard
 
@@ -180,6 +181,8 @@ dsh-agent-loop-guard:
 | `maxRepeatedAssistantLines` | `number` | `5` | Threshold of consecutive identical output lines to trigger session cancellation. |
 | `maxRepeatedAssistantBlocks` | `number` | `5` | Threshold of repeated multi-line markdown blocks before aborting generation. |
 | `maxAssistantBlockChars` | `number` | `16384` | Maximum byte length captured for block fingerprinting. |
+| `pseudoToolCallThreshold` | `number` | `3` | Consecutive completed turns with pseudo tool calls and 0 real tools before cancellation (0 = disabled). |
+| `pseudoToolCallPatterns` | `array` | `[]` | Custom regex or string patterns for pseudo tool-call detection. |
 
 ---
 

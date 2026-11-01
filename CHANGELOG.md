@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.27] - 2026-11-01
+
+### Added
+- **Pseudo Tool-Call Runaway Loop Guard (#128, gh-2)**: Implemented fail-closed detection and cancellation for runaway pseudo tool-calls (`LOOP_GUARD_PSEUDO_TOOL_CALL`). When a model gets stuck after a tool failure or hallucination and outputs raw tool-call tags/blocks (e.g. `<invoke name="...">`, `<function_call>`, `<tool_call>`, ```tool_call, `[TOOL_CALL: ...]`) across consecutive turns without triggering real DSH `tool/call` events, the guard monitors turn completions (`turn/end`). If `pseudoToolCallThreshold` (default: 3) consecutive turns complete with pseudo tool-call syntax and 0 real tool executions, the agent is canceled cleanly via `agent.cancel()`. Added `pseudoToolCallThreshold` and `pseudoToolCallPatterns` to Schemastery Config with `.volatile()` reactivity, updated Settings Card with EN/ZH localization, and recorded violations in live telemetry.
+
 ## [0.2.26] - 2026-10-20
 
 ### Fixed

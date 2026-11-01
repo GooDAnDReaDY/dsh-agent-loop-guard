@@ -235,12 +235,12 @@ test('live update of Volatile settings via config-reload refreshes runtime guard
   assert.equal(guard({ agent, name: 'tool_4', arguments: {}, callId: 'c2_4' }), undefined);
 });
 
-test('Config schema exports all 14 user-facing fields marked with .volatile() (#89, #103)', () => {
+test('Config schema exports all 16 user-facing fields marked with .volatile() (#89, #103, #128)', () => {
   assert.ok(Config, 'Config schema must be exported');
   const dict = Config.dict;
   assert.ok(dict, 'Config must have dict');
   const keys = Object.keys(dict);
-  assert.equal(keys.length, 14, 'Config schema must define exactly 14 fields');
+  assert.equal(keys.length, 16, 'Config schema must define exactly 16 fields');
   for (const [key, schema] of Object.entries(dict)) {
     assert.equal(schema.meta?.volatile, true, 'Field ' + key + ' must have meta.volatile: true');
   }
