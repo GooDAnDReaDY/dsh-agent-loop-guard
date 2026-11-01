@@ -105,6 +105,7 @@ graph TD
 | `LOOP_GUARD_LIMIT` | Суммарное число бесплодных попыток за текущий ход | `maxToolAttemptsPerTurn` (64) | Ограничивает общий бюджет холостых действий |
 | `LOOP_GUARD_PROGRESS_LIMIT` | Повторные вызовы progress-инструментов без реального продвижения | `maxProgressToolCallsPerTurn` (16) | Блокирует бесконечную перезапись todo |
 | `LOOP_GUARD_OUTPUT` | Модель генерирует одинаковые строки или блоки текста | `maxRepeatedAssistantLines` (5) | Мягко прерывает сессию через `agent.cancel()` |
+| `LOOP_GUARD_PSEUDO_TOOL_CALL` | Зацикливание на выводе псевдовызовов инструментов (`<invoke>` и др.) при 0 реальных вызовов | `pseudoToolCallThreshold` (3) | Чистая отмена сессии через `agent.cancel()` |
 
 ### 3. Предотвращение зацикливания текстового вывода
 
@@ -178,6 +179,8 @@ dsh-agent-loop-guard:
 | `maxRepeatedAssistantLines` | `number` | `5` | Порог повторяющихся одинаковых строк текста для прерывания генерации. |
 | `maxRepeatedAssistantBlocks` | `number` | `5` | Порог повторяющихся многострочных блоков до отмены хода. |
 | `maxAssistantBlockChars` | `number` | `16384` | Максимальный размер текстового блока для хэширования (в байтах). |
+| `pseudoToolCallThreshold` | `number` | `3` | Порог непрерывных ходов с псевдовызовами без реальных инструментов для отмены сессии (0 = отключено). |
+| `pseudoToolCallPatterns` | `array` | `[]` | Пользовательские регулярные выражения или строки для обнаружения псевдовызовов. |
 
 ---
 

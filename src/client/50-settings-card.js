@@ -2,7 +2,7 @@
       maxToolAttemptsPerTurn: 64, maxProgressToolCallsPerTurn: 16, progressToolNames: ['todo_write'],
       maxCallsPerRepeatGroup: 5, strictTools: [], strictToolLimit: 3, blockExactDuplicates: true,
       dryRunMode: false, assistantOutputGuard: true, maxRepeatedAssistantLines: 5,
-      maxRepeatedAssistantBlocks: 5, maxAssistantBlockChars: 16384,
+      maxRepeatedAssistantBlocks: 5, maxAssistantBlockChars: 16384, pseudoToolCallThreshold: 3,
     };
 
     function PluginCard({ ctx: _ctx, t, bare, ...props }) {
@@ -147,12 +147,10 @@
           maxCallsPerRepeatGroup: Number(draft.maxCallsPerRepeatGroup) || 5,
           strictToolLimit: Number(draft.strictToolLimit) || 3,
           strictTools: strictNames,
-          blockExactDuplicates: !!draft.blockExactDuplicates,
-          dryRunMode: !!draft.dryRunMode,
-          assistantOutputGuard: !!draft.assistantOutputGuard,
-          maxRepeatedAssistantLines: Number(draft.maxRepeatedAssistantLines) || 5,
-          maxRepeatedAssistantBlocks: Number(draft.maxRepeatedAssistantBlocks) || 5,
+          blockExactDuplicates: !!draft.blockExactDuplicates, dryRunMode: !!draft.dryRunMode, assistantOutputGuard: !!draft.assistantOutputGuard,
+          maxRepeatedAssistantLines: Number(draft.maxRepeatedAssistantLines) || 5, maxRepeatedAssistantBlocks: Number(draft.maxRepeatedAssistantBlocks) || 5,
           maxAssistantBlockChars: Number(draft.maxAssistantBlockChars) || 16384,
+          pseudoToolCallThreshold: Number.isFinite(Number(draft.pseudoToolCallThreshold)) && Number(draft.pseudoToolCallThreshold) >= 0 ? Number(draft.pseudoToolCallThreshold) : 3,
           progressToolNames: names.length ? names : ['todo_write'],
         };
         const errs = [];
@@ -320,6 +318,7 @@
         field('maxRepeatedAssistantBlocks', num('maxRepeatedAssistantBlocks')),
         field('maxAssistantBlockChars', num('maxAssistantBlockChars')),
         field('progressToolNames', str('progressToolNamesText')),
+        field('pseudoToolCallThreshold', num('pseudoToolCallThreshold')),
 
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, borderTop: '1px solid var(--dsw-alias-border-l2)', marginTop: 10 }

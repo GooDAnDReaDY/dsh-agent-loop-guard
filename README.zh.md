@@ -105,6 +105,7 @@ graph TD
 | `LOOP_GUARD_LIMIT` | 当前回合自上次产出有效进展以来的总无效调用次数超标 | `maxToolAttemptsPerTurn` (64) | 限制单回合探索预算上限 |
 | `LOOP_GUARD_PROGRESS_LIMIT` | 连续调用进度工具而未产生任何任务变更 | `maxProgressToolCallsPerTurn` (16) | 防止陷入无限修改清单死循环 |
 | `LOOP_GUARD_OUTPUT` | 智能体在流式输出中重复输出相同单行或完整段落 | `maxRepeatedAssistantLines` (5) | 通过 `agent.cancel()` 安全中断当前输出 |
+| `LOOP_GUARD_PSEUDO_TOOL_CALL` | 连续 completed 回合输出伪工具调用语法（如 `<invoke>`）且 0 次真实工具调用 | `pseudoToolCallThreshold` (3) | 通过 `agent.cancel()` 安全中断当前会话 |
 
 ### 3. 流式文本防死循环机制
 
@@ -176,6 +177,8 @@ dsh-agent-loop-guard:
 | `maxRepeatedAssistantLines` | `number` | `5` | 触发输出中断的连续相同单行阈值。 |
 | `maxRepeatedAssistantBlocks` | `number` | `5` | 触发输出中断的连续重复段落阈值。 |
 | `maxAssistantBlockChars` | `number` | `16384` | 捕获用于段落指纹比对的最大字符数。 |
+| `pseudoToolCallThreshold` | `number` | `3` | 伪工具调用空转拦截阈值（连续回合数，0 表示禁用）。 |
+| `pseudoToolCallPatterns` | `array` | `[]` | 自定义伪工具调用文本检测正则表达式或关键词列表。 |
 
 ---
 

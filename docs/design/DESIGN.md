@@ -3,7 +3,7 @@
 ## Product / Purpose
 - **Назначение:** Отказоустойчивый runtime-предохранитель среды выполнения DeepSeek Harness для предотвращения бесконечных циклов вызовов инструментов (tool calls) и зацикливания потокового вывода ассистента (streaming assistant output).
 - **Аудитория:** Разработчики, администраторы и пользователи автономных агентных систем на базе DeepSeek Harness, сталкивающиеся с расходом контекста, токенов и зависанием сессий.
-- **Статус:** Production-плагин, v0.2.25 (изоляция детектора команд остановки (#120) по последнему сообщению пользователя и строгим директивам без ложных срабатываний, потокобезопасное ограничение буфера pending ассистента (#121) через maxAssistantBlockChars с пошаговым indexOf, безопасность telemetry route через core-сервис connection.requestRejection и sec-fetch-site, проверка x-dsh-loop-guard, изолированное хранение релизных артефактов в .dsh/artifacts с sha256, безопасный clean-pack, канонические дизайн-токены DSH, Cordis Volatile live-настройки, dual-seat слоты, One-Click Updater, EN/ZH i18n).
+- **Статус:** Production-плагин, v0.2.27 (изоляция детектора команд остановки (#120) по последнему сообщению пользователя и строгим директивам без ложных срабатываний, потокобезопасное ограничение буфера pending ассистента (#121) через maxAssistantBlockChars с пошаговым indexOf, безопасность telemetry route через core-сервис connection.requestRejection и sec-fetch-site, проверка x-dsh-loop-guard, изолированное хранение релизных артефактов в .dsh/artifacts с sha256, безопасный clean-pack, канонические дизайн-токены DSH, Cordis Volatile live-настройки, dual-seat слоты, One-Click Updater, EN/ZH i18n).
 
 ## User Surfaces
 - **Web/UI:** Архитектура интеграции настроек плагина на странице плагинов ядра DSH:
@@ -87,6 +87,15 @@
   4. В DSH Desktop (`isDesktop: true` или `canAutoUpdate: false`) при наличии новой версии кнопка «Update Now» заменяется на нативную подсказку `Update in Plugins page` (`请在插件页面更新`), направляющую пользователя в нативный менеджер плагинов десктопного приложения.
 
 ## Architecture & Reusable Components
+
+- **Pseudo Tool-Call Loop Protection (#128, gh-2):**
+  - Детекция холостого зацикливания модели на псевдовызовах инструментов без реальных событий `tool/call` ядра DSH.
+  - При возникновении ошибок или галлюцинаций некоторые модели начинают выводить синтаксис вызовов в виде обычного текста (`<invoke name="...">`, `</invoke>`, `<function_call>`, `<tool_call>`, ```tool_call, `[TOOL_CALL: ...]`), при этом каждый ход завершается штатно (`turn/end(reason: completed)`).
+  - Класс `LoopGuardState` отслеживает последовательные ходы (`consecutivePseudoTurns`), в которых присутствовал текст псевдовызовов при 0 реальных вызовах инструментов (`turnRealToolCalls === 0`).
+  - При достижении порога `pseudoToolCallThreshold` (по умолчанию: 3 хода, 0 = отключено) плагин прерывает выполнение агента с кодом `LOOP_GUARD_PSEUDO_TOOL_CALL` через `agent.cancel()` и фиксирует событие в телеметрии.
+  - Любой реальный вызов инструмента (`tools/execute` или событие `tool/call`) либо новое сообщение пользователя (`user/message`) сбрасывают счётчик ходов.
+  - Поддерживается добавление пользовательских паттернов через `pseudoToolCallPatterns` в Schemastery Config со свойством `.volatile()`.
+
 - **Tools Result Payload Integration (#125, gh-1):**
   - В среде выполнения DSH (`dsh-tools`) событие `tools/result` диспатчится с двумя параметрами: `(execution, result)`. Контекст `execution` заморожен (`Object.freeze`) и содержит только метаданные вызова (`callId`, `arguments`, `agent` и т.д.), в то время как результат выполнения инструмента передаётся вторым аргументом `result`.
   - В `lib/index.js` слушатель `tools/result` принимает `(execution, result)` и передаёт результат в `state.recordResult(execution?.agent, { ...execution, result }, result)`.
