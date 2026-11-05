@@ -263,7 +263,7 @@ test('result with error: null or error: false counts as productive progress', ()
 });
 
 test('alternating identical calls between two tools without state change is blocked', () => {
-  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 3 });
+  const state = new LoopGuardState({ ...config, maxCallsPerRepeatGroup: 3, oscillationDetection: false });
   state.beginTurn('agent-alt', 1, false);
   const r1 = accept(state, 'agent-alt', 'read', { path: 'a.txt' }, 'call-a-1', { content: 'AAA' });
   assert.equal(r1.productive, true);

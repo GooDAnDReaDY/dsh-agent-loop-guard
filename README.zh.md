@@ -106,6 +106,8 @@ graph TD
 | `LOOP_GUARD_PROGRESS_LIMIT` | 连续调用进度工具而未产生任何任务变更 | `maxProgressToolCallsPerTurn` (16) | 防止陷入无限修改清单死循环 |
 | `LOOP_GUARD_OUTPUT` | 智能体在流式输出中重复输出相同单行或完整段落 | `maxRepeatedAssistantLines` (5) | 通过 `agent.cancel()` 安全中断当前输出 |
 | `LOOP_GUARD_PSEUDO_TOOL_CALL` | 连续 completed 回合输出伪工具调用语法（如 `<invoke>`）且 0 次真实工具调用 | `pseudoToolCallThreshold` (3) | 通过 `agent.cancel()` 安全中断当前会话 |
+| `LOOP_GUARD_OSCILLATION` | 多工具交替震荡循环（例如 A ➔ B ➔ A ➔ B 乒乓死循环）且无状态进展 | `maxOscillationRepeats` (3) | 拦截交替空转循环；提示智能体切换策略或直接回答 |
+| `LOOP_GUARD_PAYLOAD_TRUNCATED` | 工具返回结果字符数超出安全阈值 | `maxToolResultChars` (65536) | 安全截断过大输出（保留首尾）并注入引导提示；记录遥测且不中断工具执行 |
 
 ### 3. 流式文本防死循环机制
 

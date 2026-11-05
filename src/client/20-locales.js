@@ -32,6 +32,10 @@
       maxAssistantBlockChars: 'Max assistant block chars',
       progressToolNames: 'Progress tool names (comma-separated)',
       pseudoToolCallThreshold: 'Pseudo tool-call loop threshold (turns, 0 = disabled)',
+      oscillationDetection: 'Oscillation loop guard (ping-pong cycles)',
+      maxOscillationRepeats: 'Max oscillation repeats (2-4 step cycles)',
+      payloadBloatGuard: 'Payload bloat guard (truncate huge outputs)',
+      maxToolResultChars: 'Max tool result characters (0 = disabled)',
       saving: 'Saving…',
       ready: 'Save Settings',
       saved: 'Saved',
@@ -71,7 +75,12 @@
       maxAssistantBlockChars: '最大段落判定字符数',
       progressToolNames: '进度标记工具（逗号分隔）',
       pseudoToolCallThreshold: '伪工具调用空转拦截阈值（连续回合数，0 表示禁用）',
+      oscillationDetection: '交替循环拦截（乒乓震荡检测）',
+      maxOscillationRepeats: '最大交替循环重复次数（2-4 步序列）',
+      payloadBloatGuard: '超大结果防膨胀拦截（截断巨大输出）',
+      maxToolResultChars: '工具结果字符上限（0 表示禁用）',
       saving: '正在保存…',
       ready: '保存配置',
       saved: '配置已保存',
     };
+
