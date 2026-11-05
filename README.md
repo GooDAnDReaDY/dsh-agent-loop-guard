@@ -108,6 +108,8 @@ When a loop is detected, the guard rejects the call with structured diagnostics 
 | `LOOP_GUARD_PROGRESS_LIMIT` | Successive invocations of progress tools without content changes | `maxProgressToolCallsPerTurn` (16) | Prevents infinite todo-writing loops |
 | `LOOP_GUARD_OUTPUT` | Assistant generated identical lines or multi-line blocks | `maxRepeatedAssistantLines` (5) | Cancels session cleanly via `agent.cancel()` |
 | `LOOP_GUARD_PSEUDO_TOOL_CALL` | Consecutive completed turns outputting pseudo tool-call syntax (`<invoke>`, etc.) with 0 real tools | `pseudoToolCallThreshold` (3) | Cancels session cleanly via `agent.cancel()` |
+| `LOOP_GUARD_OSCILLATION` | Multi-tool alternating cycle (e.g. A ➔ B ➔ A ➔ B) repeated without state change | `maxOscillationRepeats` (3) | Blocks oscillating loop; provides actionable steering guidance |
+| `LOOP_GUARD_PAYLOAD_TRUNCATED` | Tool execution output exceeded maximum safe result size | `maxToolResultChars` (65536) | Safely truncates oversized payload (head + tail) with steering banner; records in telemetry |
 
 ### 3. Assistant Output Stream Guard
 
