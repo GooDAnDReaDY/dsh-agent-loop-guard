@@ -3,6 +3,7 @@
       maxCallsPerRepeatGroup: 5, strictTools: [], strictToolLimit: 3, blockExactDuplicates: true,
       dryRunMode: false, assistantOutputGuard: true, maxRepeatedAssistantLines: 5,
       maxRepeatedAssistantBlocks: 5, maxAssistantBlockChars: 16384, pseudoToolCallThreshold: 3,
+      oscillationDetection: true, maxOscillationRepeats: 3, payloadBloatGuard: true, maxToolResultChars: 65536,
     };
 
     function PluginCard({ ctx: _ctx, t, bare, ...props }) {
@@ -29,9 +30,7 @@
 
       const [, setLocaleTick] = React.useState(0);
       React.useEffect(() => {
-        if (typeof _ctx?.locale?.subscribe === 'function') {
-          return _ctx.locale.subscribe(() => setLocaleTick((c) => c + 1));
-        }
+        if (typeof _ctx?.locale?.subscribe === 'function') return _ctx.locale.subscribe(() => setLocaleTick((c) => c + 1));
       }, []);
 
       const getActiveLocale = () => {
@@ -86,10 +85,7 @@
           if (!cancelled && typeof scope.getSnapshot === 'function') { try { syncFromSnapshot(scope.getSnapshot()); } catch (_) {} }
         }) : null;
 
-        return () => {
-          cancelled = true;
-          if (typeof unsub === 'function') unsub();
-        };
+        return () => { cancelled = true; if (typeof unsub === 'function') unsub(); };
       }, [scope]);
 
       React.useEffect(() => {
@@ -151,6 +147,8 @@
           maxRepeatedAssistantLines: Number(draft.maxRepeatedAssistantLines) || 5, maxRepeatedAssistantBlocks: Number(draft.maxRepeatedAssistantBlocks) || 5,
           maxAssistantBlockChars: Number(draft.maxAssistantBlockChars) || 16384,
           pseudoToolCallThreshold: Number.isFinite(Number(draft.pseudoToolCallThreshold)) && Number(draft.pseudoToolCallThreshold) >= 0 ? Number(draft.pseudoToolCallThreshold) : 3,
+          oscillationDetection: draft.oscillationDetection !== false, maxOscillationRepeats: Number(draft.maxOscillationRepeats) || 3,
+          payloadBloatGuard: draft.payloadBloatGuard !== false, maxToolResultChars: Number.isFinite(Number(draft.maxToolResultChars)) && Number(draft.maxToolResultChars) >= 0 ? Number(draft.maxToolResultChars) : 65536,
           progressToolNames: names.length ? names : ['todo_write'],
         };
         const errs = [];
@@ -319,6 +317,10 @@
         field('maxAssistantBlockChars', num('maxAssistantBlockChars')),
         field('progressToolNames', str('progressToolNamesText')),
         field('pseudoToolCallThreshold', num('pseudoToolCallThreshold')),
+        check('oscillationDetection'),
+        field('maxOscillationRepeats', num('maxOscillationRepeats')),
+        check('payloadBloatGuard'),
+        field('maxToolResultChars', num('maxToolResultChars')),
 
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, borderTop: '1px solid var(--dsw-alias-border-l2)', marginTop: 10 }
@@ -330,18 +332,14 @@
         )
       );
 
-      if (isBare) {
-        return React.createElement('div', { className: 'alg-page' }, body);
-      }
+      if (isBare) return React.createElement('div', { className: 'alg-page' }, body);
       return React.createElement('li', { className: 'alg-card' }, header, expanded && body);
     }
 
     function PluginItem(props) {
       if (props && props.view === 'summary') {
-        return React.createElement('div', {
-          style: { color: 'var(--dsw-alias-label-secondary)', fontSize: 13 }
-        }, en.sub);
+        return React.createElement('div', { style: { color: 'var(--dsw-alias-label-secondary)', fontSize: 13 } }, en.sub);
       }
-      const isBare = Boolean(props && (props.bare || props.view === 'page'));
-      return React.createElement(PluginCard, { ...props, bare: isBare });
+      return React.createElement(PluginCard, { ...props, bare: Boolean(props && (props.bare || props.view === 'page')) });
     }
+
