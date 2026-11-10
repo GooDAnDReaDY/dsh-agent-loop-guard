@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNewerVersion, isTrustedUpdateRequest, isTrustedTelemetryRequest, isPrivateLan, currentVersion, isDesktopProfile, findDesktopCliEntry, status } from '../lib/plugin-updater.js';
+import { isNewerVersion, isTrustedUpdateRequest, bestEffort, isTrustedTelemetryRequest, isPrivateLan, currentVersion, isDesktopProfile, findDesktopCliEntry, status } from '../lib/plugin-updater.js';
 
 test('isNewerVersion handles core semver and prereleases correctly', () => {
   assert.equal(isNewerVersion('0.2.4', '0.2.5'), true);
@@ -366,4 +366,28 @@ test('updater does not disable pnpm minimumReleaseAge supply-chain guard (#116)'
     false,
     'lib/plugin-updater.js must never bypass pnpm quarantine via --config.minimumReleaseAge=0'
   );
+});
+
+test('bestEffort executes functions safely and logs errors on debug (#134)', () => {
+  const res = bestEffort('probe valid', () => 42);
+  assert.equal(res, 42);
+
+  const failed = bestEffort('probe throw', () => {
+    throw new Error('candidate missing');
+  });
+  assert.equal(failed, undefined);
+
+  const logs = [];
+  const fakeLogger = {
+    debug(msg, err) {
+      logs.push({ msg, err });
+    },
+  };
+  const logged = bestEffort('probe logging', () => {
+    throw new Error('access denied');
+  }, fakeLogger);
+  assert.equal(logged, undefined);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].msg, '[plugin-updater:bestEffort] probe logging:');
+  assert.equal(logs[0].err, 'access denied');
 });
