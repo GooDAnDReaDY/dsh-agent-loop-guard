@@ -1,10 +1,13 @@
 # Changelog
 
-## [0.2.28] - 2026-11-05
+## [0.2.28] - 2026-11-10
 
 ### Added
 - **Multi-Tool Oscillation Loop Guard (#130)**: Implemented cycle detection for alternating multi-tool sequences (period $P \in [2, 4]$) repeating $K$ times (default `maxOscillationRepeats = 3`). Prevents runaway ping-pong loops (such as A ➔ B ➔ A ➔ B or A ➔ B ➔ C ➔ A ➔ B ➔ C) when tools repeat cyclical operations without state progression. Triggers `LOOP_GUARD_OSCILLATION` with actionable guidance directing the agent to modify its strategy or provide a direct response. Added `oscillationDetection` (boolean) and `maxOscillationRepeats` (number) settings with `.volatile()` reactivity and UI localization.
 - **Payload Bloat Guard (#131)**: Safeguarded model context window from excessive tool outputs via automatic head/tail truncation for execution results exceeding `maxToolResultChars` (default: 65,536 chars / 64 KB, 0 = disabled). Injects a clear steering banner instructing the agent to use line ranges, grep, head, tail, or save to file instead of dumping entire content. Records `LOOP_GUARD_PAYLOAD_TRUNCATED` in telemetry without failing tool execution. Added `payloadBloatGuard` and `maxToolResultChars` settings with `.volatile()` reactivity and UI controls.
+
+### Fixed
+- **Preflight Empty Catch Elimination (#134)**: Replaced 5 unhandled empty `catch` blocks in `lib/plugin-updater.js` (`findDesktopCliEntry`) and `src/client/50-settings-card.js` with `bestEffort(label, fn, logger)` helper and explicit snapshot sync handling. Ensures clean preflight checks (`FAIL=0`).
 
 ## [0.2.27] - 2026-11-01
 
