@@ -1,6 +1,6 @@
 {
   "name": "@goodandready/dsh-agent-loop-guard",
-  "version": "0.2.28",
+  "version": "0.2.29",
   "description": "Fail-closed runtime tool-call loop guard for DeepSeek Harness.",
   "type": "module",
   "main": "lib/index.js",
@@ -21,11 +21,12 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check lib/index.js && node --check lib/guard-state.js && node --check lib/assistant-output-state.js && node --check lib/plugin-updater.js && node --check lib/client.js",
+    "check": "node --check lib/index.js && node --check lib/guard-state.js && node --check lib/guard-helpers.js && node --check lib/assistant-output-state.js && node --check lib/plugin-updater.js && node --check lib/client.js && node scripts/pack-check.mjs",
     "build:client": "node scripts/build-client.mjs",
     "pretest": "node scripts/build-client.mjs",
     "clean": "node scripts/clean-pack.mjs",
-    "pack:release": "node scripts/pack-release.mjs"
+    "pack:release": "node scripts/pack-release.mjs",
+    "pack:check": "node scripts/pack-check.mjs"
   },
   "dsh": {
     "bundle": {
@@ -56,5 +57,9 @@
   },
   "devDependencies": {
     "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "overrides": {
+    "zod": "^4.6.6",
+    "fast-uri": "^3.1.9"
   }
 }

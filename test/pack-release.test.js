@@ -61,3 +61,30 @@ test('pack-release packages to specified artifacts directory and generates valid
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+test('pack-check fails when stray tarballs exist in working directory (#137)', () => {
+  const packCheckScript = path.join(here, '..', 'scripts', 'pack-check.mjs');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-pack-check-test-'));
+  try {
+    const stray = path.join(tmpDir, 'stray-artifact-0.1.0.tgz');
+    fs.writeFileSync(stray, 'mock-artifact');
+
+    const run = spawnSync(process.execPath, [packCheckScript], {
+      cwd: tmpDir,
+      encoding: 'utf8',
+    });
+    assert.notEqual(run.status, 0, 'Expected pack-check to fail when .tgz is present in root');
+    assert.match(run.stderr, /Untracked release tarballs found in source root/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('pack-check succeeds on clean repository (#137)', () => {
+  const packCheckScript = path.join(here, '..', 'scripts', 'pack-check.mjs');
+  const run = spawnSync(process.execPath, [packCheckScript], {
+    cwd: path.join(here, '..'),
+    encoding: 'utf8',
+  });
+  assert.equal(run.status, 0, run.stderr || run.stdout);
+  assert.match(run.stdout, /All files under 262144 bytes/);
+});

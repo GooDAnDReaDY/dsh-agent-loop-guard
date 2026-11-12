@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.29] - 2026-11-12
+
+### Added
+- **Canonical Entry Points & Documentation (#136)**: Added standard project entry files `AGENTS.md` (agent workflow constraints, identity invariants, build commands), `index.md` (project roadmap, architecture, commands, test matrix), and `deploy.sh` (canonical test, identity, and profile installation script). Added `.gitattributes` with `export-ignore` rules, ensuring internal documentation is strictly excluded from npm releases and public GitHub mirrors.
+- **Package Cleanliness & Root Artifact Guard (#137)**: Added `scripts/pack-check.mjs` and `npm run pack:check` script. Enforces that untracked `.tgz` archives cannot reside in the repository root (moved to persistent `~/.dsh/artifacts/`) and validates the strict file size budget (<= 256 KiB) across all packaged files. Added automated unit tests in `test/pack-release.test.js`.
+
+### Fixed
+- **Security Vulnerability Remediations (#138)**: Resolved high-severity vulnerability in `zod` (GHSA-mrhx-c7xc-m3w5) and moderate-severity vulnerability in `fast-uri` (GHSA-w74x-v6f9-j3xg) via explicit `overrides` in `package.json` (`zod >= 4.6.6`, `fast-uri >= 3.1.9`). Cleaned `npm audit --omit=dev` down to 0 vulnerabilities.
+- **Dead Export Removal & Architecture Modularization (#139)**: Removed unused and dead export `DEFAULT_STOP_PATTERNS` from `lib/guard-state.js` in favor of anchored regular expressions `EXPLICIT_STOP_EN` / `EXPLICIT_STOP_ZH` in `isDefaultStopRequest()`. Modularized helper functions, pattern compilers, and fingerprint generators into `lib/guard-helpers.js` with full backward-compatible re-exports, bringing all server files strictly under the 600-line limit and eliminating preflight warnings.
+
 ## [0.2.28] - 2026-11-10
 
 ### Added
