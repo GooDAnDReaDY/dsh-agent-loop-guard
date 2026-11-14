@@ -1,11 +1,3 @@
-    const DEFAULTS = {
-      maxToolAttemptsPerTurn: 64, maxProgressToolCallsPerTurn: 16, progressToolNames: ['todo_write'],
-      maxCallsPerRepeatGroup: 5, strictTools: [], strictToolLimit: 3, blockExactDuplicates: true,
-      dryRunMode: false, assistantOutputGuard: true, maxRepeatedAssistantLines: 5,
-      maxRepeatedAssistantBlocks: 5, maxAssistantBlockChars: 16384, pseudoToolCallThreshold: 3,
-      oscillationDetection: true, maxOscillationRepeats: 3, payloadBloatGuard: true, maxToolResultChars: 65536,
-    };
-
     function PluginCard({ ctx: _ctx, t, bare, ...props }) {
       const isBare = Boolean(bare || props?.view === 'page');
       const [expanded, setExpanded] = React.useState(false);
@@ -20,7 +12,7 @@
         updating: false, notice: '', error: '', canAutoUpdate: true, isDesktop: false,
       });
 
-      const [telemetry, setTelemetry] = React.useState({ totalViolations: 0, byCode: {}, lastViolation: null });
+      const [telemetry, setTelemetry] = React.useState({ totalViolations: 0, steeredCount: 0, byCode: {}, lastViolation: null, incidents: [] });
 
       const scopeRef = React.useRef(null);
       if (!scopeRef.current && _ctx && _ctx.configForms) {
@@ -34,12 +26,10 @@
       }, []);
 
       const getActiveLocale = () => {
-        const snap = typeof _ctx?.locale?.getLocale === 'function'
-          ? _ctx.locale.getLocale()
+        const snap = typeof _ctx?.locale?.getLocale === 'function' ? _ctx.locale.getLocale()
           : (typeof _ctx?.locale?.getSnapshot === 'function' ? _ctx.locale.getSnapshot() : null);
         const loc = typeof snap === 'string' ? snap : (snap?.active || snap?.locale || snap?.id);
-        if (loc) return loc;
-        return typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en';
+        return loc || (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en');
       };
       const currentLang = String(getActiveLocale()).toLowerCase().startsWith('zh') ? 'zh' : 'en';
       const dict = currentLang === 'zh' ? zh : en;
@@ -93,15 +83,15 @@
         let cancelled = false;
 
         (async () => {
-          setUpdateState((s) => ({ ...s, checking: true, error: '', notice: '' }));
           try {
             const res = await fetch('/api/@goodandready/dsh-agent-loop-guard/update');
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             if (cancelled) return;
             setUpdateState((s) => ({
-              ...s, checking: false, currentVersion: data.currentVersion || '',
-              latestVersion: data.latestVersion || '', updateAvailable: !!data.updateAvailable,
+              ...s, checking: false, updateAvailable: Boolean(data.updateAvailable),
+              currentVersion: data.currentVersion || '', latestVersion: data.latestVersion || '',
+              updating: false, notice: '', error: '',
               canAutoUpdate: data.canAutoUpdate !== false, isDesktop: !!data.isDesktop,
             }));
           } catch (err) {
@@ -118,8 +108,10 @@
             if (cancelled) return;
             setTelemetry({
               totalViolations: Number(data.totalViolations) || 0,
+              steeredCount: Number(data.steeredCount) || 0,
               byCode: data.byCode || {},
               lastViolation: data.lastViolation || null,
+              incidents: Array.isArray(data.incidents) ? data.incidents : [],
               error: null,
             });
           } catch (err) {
@@ -132,24 +124,23 @@
       }, [isExpanded]);
 
       async function onSave() {
-        if (!scope) { setMsg('Settings unavailable'); return; }
-        setSaving(true); setMsg('');
-        const names = String(draft.progressToolNamesText || '').split(',').map((s) => s.trim()).filter(Boolean);
-        const strictNames = String(draft.strictToolsText || '').split(',').map((s) => s.trim()).filter(Boolean);
-        const maxToolAttempts = Number(draft.maxToolAttemptsPerTurn);
+        if (!scope || saving) return;
+        setSaving(true);
+        setMsg('');
+        const names = draft.progressToolNamesText.split(',').map((s) => s.trim()).filter(Boolean);
+        const strictList = draft.strictToolsText.split(',').map((s) => s.trim()).filter(Boolean);
         const payload = {
-          maxToolAttemptsPerTurn: Number.isFinite(maxToolAttempts) && maxToolAttempts >= 0 ? maxToolAttempts : 64,
-          maxProgressToolCallsPerTurn: Number(draft.maxProgressToolCallsPerTurn) || 16,
-          maxCallsPerRepeatGroup: Number(draft.maxCallsPerRepeatGroup) || 5,
-          strictToolLimit: Number(draft.strictToolLimit) || 3,
-          strictTools: strictNames,
-          blockExactDuplicates: !!draft.blockExactDuplicates, dryRunMode: !!draft.dryRunMode, assistantOutputGuard: !!draft.assistantOutputGuard,
-          maxRepeatedAssistantLines: Number(draft.maxRepeatedAssistantLines) || 5, maxRepeatedAssistantBlocks: Number(draft.maxRepeatedAssistantBlocks) || 5,
-          maxAssistantBlockChars: Number(draft.maxAssistantBlockChars) || 16384,
-          pseudoToolCallThreshold: Number.isFinite(Number(draft.pseudoToolCallThreshold)) && Number(draft.pseudoToolCallThreshold) >= 0 ? Number(draft.pseudoToolCallThreshold) : 3,
+          maxToolAttemptsPerTurn: Number(draft.maxToolAttemptsPerTurn) || 0, maxProgressToolCallsPerTurn: Number(draft.maxProgressToolCallsPerTurn) || 16,
+          maxCallsPerRepeatGroup: Number(draft.maxCallsPerRepeatGroup) || 5, strictTools: strictList, strictToolLimit: Number(draft.strictToolLimit) || 3,
+          blockExactDuplicates: draft.blockExactDuplicates !== false, dryRunMode: Boolean(draft.dryRunMode),
+          assistantOutputGuard: draft.assistantOutputGuard !== false, maxRepeatedAssistantLines: Number(draft.maxRepeatedAssistantLines) || 5,
+          maxRepeatedAssistantBlocks: Number(draft.maxRepeatedAssistantBlocks) || 5, maxAssistantBlockChars: Number(draft.maxAssistantBlockChars) || 16384,
+          pseudoToolCallThreshold: Number.isFinite(Number(draft.pseudoToolCallThreshold)) ? Number(draft.pseudoToolCallThreshold) : 3,
           oscillationDetection: draft.oscillationDetection !== false, maxOscillationRepeats: Number(draft.maxOscillationRepeats) || 3,
-          payloadBloatGuard: draft.payloadBloatGuard !== false, maxToolResultChars: Number.isFinite(Number(draft.maxToolResultChars)) && Number(draft.maxToolResultChars) >= 0 ? Number(draft.maxToolResultChars) : 65536,
-          progressToolNames: names.length ? names : ['todo_write'],
+          payloadBloatGuard: draft.payloadBloatGuard !== false, progressToolNames: names.length ? names : ['todo_write'],
+          maxToolResultChars: Number.isFinite(Number(draft.maxToolResultChars)) && Number(draft.maxToolResultChars) >= 0 ? Number(draft.maxToolResultChars) : 65536,
+          errorThrashingGuard: draft.errorThrashingGuard !== false, maxConsecutiveFailures: Number(draft.maxConsecutiveFailures) || 4,
+          adaptiveSteering: draft.adaptiveSteering !== false,
         };
         const errs = [];
         for (const [k, v] of Object.entries(payload)) {
@@ -159,38 +150,45 @@
         setMsg(errs.length ? errs.join('; ') : tt('saved'));
       }
 
+      function applyPreset(name) {
+        if (!CLIENT_PRESETS[name]) return;
+        setDraft((d) => ({ ...d, ...CLIENT_PRESETS[name] }));
+        setMsg(tt('presetApplied', { name: tt('preset' + name.charAt(0).toUpperCase() + name.slice(1)) }));
+      }
+
+      function onCopyDump() {
+        try {
+          if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) navigator.clipboard.writeText(JSON.stringify(telemetry, null, 2));
+          setMsg(tt('dumpCopied'));
+        } catch (e) { setMsg(String(e)); }
+      }
+
       async function onTriggerUpdate() {
         if (updateState.updating) return;
         setUpdateState((s) => ({ ...s, updating: true, error: '', notice: '' }));
         try {
           const res = await fetch('/api/@goodandready/dsh-agent-loop-guard/update', {
-            method: 'POST',
-            headers: { 'x-dsh-plugin-update': '1' },
+            method: 'POST', headers: { 'x-dsh-plugin-update': '1' },
           });
           const data = await res.json();
-          if (!res.ok || data.error) throw new Error(data.error || 'Update failed with HTTP ' + res.status);
+          if (!res.ok || data.error) throw new Error(data.error || 'HTTP ' + res.status);
           setUpdateState((s) => ({
             ...s, updating: false, updateAvailable: false,
             currentVersion: data.updatedVersion || s.latestVersion,
             notice: tt('updateSuccess', { v: data.updatedVersion || s.latestVersion }),
           }));
-        } catch (err) {
-          setUpdateState((s) => ({ ...s, updating: false, error: tt('updateFailed', { msg: err.message || String(err) }) }));
-        }
+        } catch (err) { setUpdateState((s) => ({ ...s, updating: false, error: tt('updateFailed', { msg: err.message || String(err) }) })); }
       }
 
       async function onResetTelemetry() {
         try {
           const res = await fetch('/api/@goodandready/dsh-agent-loop-guard/telemetry', {
-            method: 'POST',
-            headers: { 'x-dsh-loop-guard': '1' },
+            method: 'POST', headers: { 'x-dsh-loop-guard': '1' },
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
-          setTelemetry({ totalViolations: 0, byCode: {}, lastViolation: null, error: null });
+          setTelemetry({ totalViolations: 0, steeredCount: 0, byCode: {}, lastViolation: null, incidents: [], error: null });
           setMsg(tt('statsResetDone'));
-        } catch (err) {
-          setMsg(tt('statsResetFailed'));
-        }
+        } catch (err) { setMsg(tt('statsResetFailed')); }
       }
 
       const renderChevron = () => {
@@ -211,36 +209,19 @@
       const field = (key, input) => {
         const id = 'alg-' + key;
         const linkedInput = React.isValidElement && React.isValidElement(input)
-          ? React.cloneElement(input, { id })
-          : input;
-        return React.createElement('div', { className: 'alg-field' },
+          ? React.cloneElement(input, { id }) : input;
+        return React.createElement('div', { key, className: 'alg-field' },
           React.createElement('label', { htmlFor: id }, tt(key)),
           linkedInput
         );
       };
 
-      const num = (key) => React.createElement('input', {
-        type: 'number', className: 'alg-input', value: draft[key],
-        onChange: (e) => setDraft((d) => ({ ...d, [key]: e.target.value })),
-      });
-
-      const str = (key) => React.createElement('input', {
-        type: 'text', className: 'alg-input', value: draft[key],
-        onChange: (e) => setDraft((d) => ({ ...d, [key]: e.target.value })),
-      });
-
-      const check = (key) => React.createElement('label', { className: 'alg-checkbox-label' },
-        React.createElement('input', {
-          type: 'checkbox', checked: !!draft[key],
-          onChange: (e) => setDraft((d) => ({ ...d, [key]: e.target.checked }))
-        }),
-        tt(key)
-      );
+      const num = (k) => React.createElement('input', { type: 'number', className: 'alg-input', value: draft[k], onChange: (e) => setDraft((d) => ({ ...d, [k]: e.target.value })) });
+      const str = (k) => React.createElement('input', { type: 'text', className: 'alg-input', value: draft[k], onChange: (e) => setDraft((d) => ({ ...d, [k]: e.target.value })) });
+      const check = (k) => React.createElement('label', { key: k, className: 'alg-checkbox-label' }, React.createElement('input', { type: 'checkbox', checked: !!draft[k], onChange: (e) => setDraft((d) => ({ ...d, [k]: e.target.checked })) }), tt(k));
 
       const header = React.createElement('button', {
-        className: 'alg-header-btn',
-        onClick: () => setExpanded(!expanded),
-        'aria-expanded': expanded,
+        className: 'alg-header-btn', onClick: () => setExpanded(!expanded), 'aria-expanded': expanded,
       },
         React.createElement('span', { style: { display: 'flex', flexDirection: 'column' } },
           React.createElement('span', { style: { color: 'var(--dsw-alias-label-primary)', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 } },
@@ -281,23 +262,41 @@
           style: { padding: '8px 12px', marginBottom: 12, background: 'color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent)', color: 'var(--dsw-alias-state-success-primary)', borderRadius: 6, fontSize: 12, border: '1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 20%, transparent)' }
         }, updateState.notice),
 
+        React.createElement('div', { className: 'alg-presets' },
+          React.createElement('span', { style: { fontSize: 12, fontWeight: 500, color: 'var(--dsw-alias-label-secondary)', marginRight: 4 } }, tt('presetsTitle') + ':'),
+          React.createElement('button', { type: 'button', className: 'alg-btn-preset', onClick: () => applyPreset('strict') }, tt('presetStrict')),
+          React.createElement('button', { type: 'button', className: 'alg-btn-preset', onClick: () => applyPreset('balanced') }, tt('presetBalanced')),
+          React.createElement('button', { type: 'button', className: 'alg-btn-preset', onClick: () => applyPreset('autonomous') }, tt('presetAutonomous'))
+        ),
+
         React.createElement('div', {
           style: { padding: '12px 14px', margin: '14px 0', background: 'color-mix(in srgb, var(--dsw-alias-label-primary) 2%, transparent)', borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)' }
         },
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
             React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, tt('telemetryTitle')),
-            telemetry.totalViolations > 0 && React.createElement('button', {
-              className: 'alg-btn-ghost', onClick: onResetTelemetry,
-            }, tt('resetStats'))
+            React.createElement('div', { style: { display: 'flex', gap: 6 } },
+              telemetry.totalViolations > 0 && React.createElement('button', { className: 'alg-btn-ghost', onClick: onCopyDump }, tt('copyDump')),
+              (telemetry.totalViolations > 0 || (telemetry.incidents && telemetry.incidents.length > 0)) && React.createElement('button', { className: 'alg-btn-ghost', onClick: onResetTelemetry }, tt('resetStats'))
+            )
           ),
           React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
             telemetry.error
               ? React.createElement('span', { style: { color: 'var(--dsw-alias-state-error-primary)' } }, telemetry.error)
-              : telemetry.totalViolations > 0
-                ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
-                    React.createElement('div', null, tt('totalBlocked') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-state-warn-primary)' } }, telemetry.totalViolations)),
+              : (telemetry.totalViolations > 0 || telemetry.steeredCount > 0)
+                ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                    React.createElement('div', { style: { display: 'flex', gap: 16 } },
+                      React.createElement('div', null, tt('totalBlocked') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-state-warn-primary)' } }, telemetry.totalViolations)),
+                      React.createElement('div', null, tt('steeredCount') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-brand-primary)' } }, telemetry.steeredCount || 0))
+                    ),
                     telemetry.lastViolation && React.createElement('div', { style: { color: 'var(--dsw-alias-label-tertiary)' } },
                       tt('lastViolation') + ': ' + telemetry.lastViolation.code + ' (' + telemetry.lastViolation.tool + ')'
+                    ),
+                    telemetry.incidents && telemetry.incidents.length > 0 && React.createElement('div', { style: { marginTop: 6, borderTop: '1px solid var(--dsw-alias-border-l2)', paddingTop: 6 } },
+                      React.createElement('div', { style: { fontWeight: 500, marginBottom: 4 } }, tt('incidentsTitle')),
+                      telemetry.incidents.slice(0, 4).map((inc, i) => React.createElement('div', { key: inc.id || i, className: 'alg-incident-row' },
+                        React.createElement('span', { style: { fontWeight: 500, color: inc.code === 'LOOP_GUARD_STEER' ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-state-error-primary)' } }, inc.code),
+                        React.createElement('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, inc.tool)
+                      ))
                     )
                   )
                 : React.createElement('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, tt('noViolations'))
@@ -321,6 +320,9 @@
         field('maxOscillationRepeats', num('maxOscillationRepeats')),
         check('payloadBloatGuard'),
         field('maxToolResultChars', num('maxToolResultChars')),
+        check('errorThrashingGuard'),
+        field('maxConsecutiveFailures', num('maxConsecutiveFailures')),
+        check('adaptiveSteering'),
 
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, borderTop: '1px solid var(--dsw-alias-border-l2)', marginTop: 10 }
@@ -328,7 +330,7 @@
           React.createElement('button', {
             className: 'alg-btn-primary', onClick: onSave, disabled: saving || status !== 'ready',
           }, saving ? tt('saving') : tt('ready')),
-          msg && React.createElement('span', { style: { fontSize: 13, color: msg === tt('saved') || msg === tt('statsResetDone') ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)' } }, msg)
+          msg && React.createElement('span', { style: { fontSize: 13, color: msg.includes(';') ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-state-success-primary)' } }, msg)
         )
       );
 
@@ -342,4 +344,3 @@
       }
       return React.createElement(PluginCard, { ...props, bare: Boolean(props && (props.bare || props.view === 'page')) });
     }
-
