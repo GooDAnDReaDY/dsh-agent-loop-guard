@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0] - 2026-11-14
+
+### Added
+- **Error Thrashing Guard (#141)**: Automatic detection and cancellation of tool failure loops (`LOOP_GUARD_ERROR_THRASHING`). Extracts normalized error signatures (`FS_ENOENT`, `FS_EPERM`, `FS_ENOSPC`, `EXIT_*`, `HTTP_*`, `TIMEOUT`, `CONN_REFUSED`) across tool calls with different parameters. Halts runaway retry cycles when failures exceed `maxConsecutiveFailures` (default: 4, configurable). Resets immediately on productive tool progress.
+- **Smart Steering (#142)**: 2-stage defensive mechanism that provides actionable steering directives (`[LOOP_GUARD_STEER] Warning: ...`) before hard cancellation. Injects contextual guidance prompting the agent to change tool parameters, switch tools, diagnose root causes, or provide a text answer. Escalates to hard stop (`answerOnly`) if the agent ignores the directive. Configurable via `adaptiveSteering` (boolean, default: true).
+- **Incident Journal & Post-Mortem in UI (#143)**: Circular buffer (capacity 30) capturing all violations and steering events with timestamp, session, code, tool name, reason, and call chain history. Exposed via `/api/@goodandready/dsh-agent-loop-guard/telemetry` with reverse chronological order (last 20). Integrated into DSH Web UI Settings Card with incident list and 1-click "Copy Diagnostic Dump" button for rapid troubleshooting and bug reports.
+- **Sensitivity Presets (#144)**: 1-click preset selector in DSH Web UI Settings Card offering 3 tuned profiles: `Strict` (tight limits for small or hallucinating models), `Balanced` (default optimal limits for production workloads), and `Autonomous Coding` (expanded limits for deep multi-file refactoring). Exported `GUARD_PRESETS` in public API. Complete localization in EN, RU, and ZH.
+
+
 ## [0.2.29] - 2026-11-12
 
 ### Added

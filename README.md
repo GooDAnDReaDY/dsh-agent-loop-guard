@@ -44,7 +44,11 @@ When autonomous AI coding agents encounter unexpected tool failures, ambiguous i
 1. **Progress-Aware Tool-Call Guard**: Employs epoch-based state tracking so that repeated calls are blocked *only* when no meaningful state changes or new evidence appear. Legitimate productive iterations (e.g. `read` ➔ `edit` ➔ `read` ➔ `edit`) remain fully unrestricted.
 2. **Assistant Output Loop Breaker**: Detects text-only repetition (identical streaming lines or multi-line markdown blocks) across turns and steps, cleanly canceling runaway generation without damaging session history.
 3. **Answer-Only Graceful Fallback**: Instead of terminating abruptly, the plugin triggers structured DSH denials that guide the LLM into answering with text explaining the bottleneck.
-4. **Zero Core Modifications**: Implemented purely through Cordis lifecycle hooks (`ctx.tools.guard`, `agent/pre-step`, `tools/execute`, `session/event`).
+4. **Error Thrashing Guard**: Halts runaway failure cycles sharing normalized error signatures (`FS_ENOENT`, `FS_EPERM`, `EXIT_*`, `HTTP_*`, etc.) even when parameters vary.
+5. **Smart Steering**: 2-stage defense injecting actionable self-correction directives (`[LOOP_GUARD_STEER]`) before escalating to hard cancellation.
+6. **Incident Journal & Diagnostic Dump**: Circular telemetry buffer tracking recent incidents with execution chains and 1-click dump copying in Web UI.
+7. **Sensitivity Presets**: 1-click preset selector (`Strict`, `Balanced`, `Autonomous Coding`) for immediate threshold configuration.
+8. **Zero Core Modifications**: Implemented purely through Cordis lifecycle hooks (`ctx.tools.guard`, `agent/pre-step`, `tools/execute`, `session/event`).
 
 ---
 
