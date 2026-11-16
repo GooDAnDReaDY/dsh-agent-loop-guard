@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.3] - 2026-11-16
+
+### Added
+- **Hot Path Performance & Memory Optimizations (#158)**:
+  - **Pre-Compiled Pseudo-Tool Regex**: Regex patterns are compiled once in `LoopGuardState` constructor and config reload (`compiledPseudoPatterns`), eliminating re-compilation on every streaming delta chunk.
+  - **Sliding Tail Window Scan**: `observeAssistantText` inspects only an overlap tail window (`text.length + 256` bytes) instead of rescanning up to 64 KB on every delta, eliminating $O(N^2)$ streaming overhead.
+  - **Large Payload Fast Fingerprinting**: String arguments exceeding 2048 characters are hashed via deterministic prefix + length + SHA-256 fingerprint in `callFingerprint` and `callRepeatFingerprint`, preventing multi-megabyte JSON serialization and heap spikes during massive file writes.
+  - **Bounded Call Sequence History**: `state.calls` is bounded to the most recent 64 entries, preventing unbounded array growth in long-running sessions.
+- **Audit-First Dry-Run Mode (#162)**: Extended `dryRunMode` to output repetition guard (`cancelOnOutputHit`) and pseudo-tool loop detector (`cancelOnPseudoHit`). Violations are recorded to telemetry and incident journals for audit without terminating agent execution or cancelling generation.
+- **Automated Preset Parity Gate (#159)**: Added automated test suite `test/presets-parity.test.js` validating 1:1 parameter parity across server `GUARD_PRESETS` and client `CLIENT_PRESETS` for all profiles (`Strict`, `Balanced`, `Autonomous`). Aligned `LoopGuardState` constructor fallback for `maxUnchangedReadsPerTarget` with schema default (3).
+
+### Fixed
+- **Dead Imports & Redundant Delegate Elimination (#165)**: Removed unused imports `GUARD_PRESETS` and `hasStopRequest` in `lib/index.js`. Removed redundant wrapper `LoopGuardState.decrementReservations` in favor of direct module function invocation.
+- **SMB Mount Filemode Drift Protection (#166)**: Documented and enforced `core.fileMode = false` for SMB/Windows-mounted checkouts, preventing spurious 100755/100644 git status diffs.
+
 ## [0.3.2] - 2026-11-16
 
 ### Added
