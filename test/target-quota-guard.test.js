@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import {
   LoopGuardState,
   extractTargetKey,
@@ -10,7 +13,8 @@ import {
 test('extractTargetKey normalizes various target parameters across OS styles', () => {
   assert.equal(extractTargetKey('read_file', { path: 'src/index.js' }), 'src/index.js');
   assert.equal(extractTargetKey('read_file', { file: './src/index.js' }), 'src/index.js');
-  assert.equal(extractTargetKey('edit_file', { filePath: 'C:\\Project\\App\\main.py' }), 'c:/project/app/main.py');
+  const expectedDrive = process.platform === 'win32' ? 'c:/project/app/main.py' : 'c:/Project/App/main.py';
+  assert.equal(extractTargetKey('edit_file', { filePath: 'C:\\Project\\App\\main.py' }), expectedDrive);
   assert.equal(extractTargetKey('cat', { target: '/var/log//syslog' }), '/var/log/syslog');
   assert.equal(extractTargetKey('fetch', { uri: 'file:///home/user/doc.txt' }), '/home/user/doc.txt');
   assert.equal(extractTargetKey('write', { dest: 'build/out/' }), 'build/out');
@@ -18,9 +22,30 @@ test('extractTargetKey normalizes various target parameters across OS styles', (
   assert.equal(extractTargetKey('inspect', { params: { path: './lib/test.ts' } }), 'lib/test.ts');
   assert.equal(extractTargetKey('bash', { command: 'ls -la' }), null);
   assert.equal(extractTargetKey('read', null), null);
+
+  // #151: dot-dot normalization
+  assert.equal(extractTargetKey('read', { path: 'a/../b.txt' }), 'b.txt');
+  assert.equal(extractTargetKey('read', { path: 'a/../b.txt' }), extractTargetKey('read', { path: 'b.txt' }));
+
+  // #151: case preservation on non-win32
+  if (process.platform !== 'win32') {
+    assert.notEqual(extractTargetKey('read', { path: 'README.md' }), extractTargetKey('read', { path: 'readme.md' }));
+  }
+
+  // #151: symlink resolution
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'target-key-test-'));
+  try {
+    const realFile = path.join(tmpDir, 'real.txt');
+    const linkFile = path.join(tmpDir, 'link.txt');
+    fs.writeFileSync(realFile, 'data');
+    fs.symlinkSync(realFile, linkFile);
+    assert.equal(extractTargetKey('read', { path: linkFile }), extractTargetKey('read', { path: realFile }));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
-test('classifyToolAction identifies common operation categories', () => {
+test('classifyToolAction identifies common operation categories and avoids substring false positives (#150)', () => {
   assert.equal(classifyToolAction('read_file'), 'read');
   assert.equal(classifyToolAction('readFile'), 'read');
   assert.equal(classifyToolAction('cat'), 'read');
@@ -33,6 +58,15 @@ test('classifyToolAction identifies common operation categories', () => {
   assert.equal(classifyToolAction('delete_file'), 'delete');
   assert.equal(classifyToolAction('rm'), 'delete');
   assert.equal(classifyToolAction('execute_bash'), 'default');
+
+  // #150 fixes
+  assert.equal(classifyToolAction('format_code'), 'edit');
+  assert.equal(classifyToolAction('confirm_changes'), 'default');
+  assert.equal(classifyToolAction('perform_action'), 'default');
+  assert.equal(classifyToolAction('transform_data'), 'default');
+  assert.equal(classifyToolAction('review_changes'), 'default');
+  assert.equal(classifyToolAction('preview_url'), 'default');
+  assert.equal(classifyToolAction('locate_symbol'), 'default');
 });
 
 test('Target Quota Guard catches unchanged re-reads across slice variations and epoch resets (gh-3 reproduction)', () => {
@@ -92,7 +126,7 @@ test('Target Quota Guard catches unchanged re-reads across slice variations and 
   assert.equal(guard.metrics.byCode.LOOP_GUARD_UNREFRESHED_READ, 1);
 });
 
-test('Non-latching denial: agent is NOT locked in answerOnly and can work on other targets or cleanup tools', () => {
+test('Non-latching denial: agent is NOT locked in answerOnly initially and can work on other targets or cleanup tools', () => {
   const guard = new LoopGuardState({
     targetQuotaGuard: true,
     maxUnchangedReadsPerTarget: 2,
@@ -118,13 +152,89 @@ test('Non-latching denial: agent is NOT locked in answerOnly and can work on oth
 
   // CRITICAL: Agent must NOT be locked in answerOnly!
   const state = guard.stateFor(agent);
-  assert.equal(state.answerOnly, false, 'Target denial must be non-latching');
+  assert.equal(state.answerOnly, false, 'Target denial must be non-latching initially');
 
   // Agent can still read fileB
   assert.equal(guard.denyReason(agent, 'read_file', { path: fileB }, 'rb-1'), undefined);
 
   // Agent can still execute cleanup shell command
   assert.equal(guard.denyReason(agent, 'bash', { command: 'rm /tmp/lock' }, 'cleanup-1'), undefined);
+});
+
+test('Target denial escalation: repeated target denials escalate to answerOnly (#148)', () => {
+  const guard = new LoopGuardState({
+    targetQuotaGuard: true,
+    maxUnchangedReadsPerTarget: 2,
+    adaptiveSteering: false,
+  });
+
+  const agent = 'agent-escalate';
+  guard.beginTurn(agent, 1, false);
+
+  const fileA = 'target_escalate.txt';
+
+  // Read fileA 3 times to exhaust unchanged reads
+  for (let i = 1; i <= 3; i++) {
+    guard.denyReason(agent, 'read_file', { path: fileA, v: i }, `r-${i}`);
+    guard.commitCall(agent, `r-${i}`);
+    guard.recordResult(agent, { callId: `r-${i}`, result: { text: 'same' } });
+  }
+
+  // Denial 1 (non-latching)
+  const d1 = guard.denyReason(agent, 'read_file', { path: fileA, v: 4 }, 'r-4');
+  assert.match(d1, /LOOP_GUARD_UNREFRESHED_READ/);
+  assert.equal(guard.stateFor(agent).answerOnly, false);
+
+  // Denial 2 (non-latching)
+  const d2 = guard.denyReason(agent, 'read_file', { path: fileA, v: 5 }, 'r-5');
+  assert.match(d2, /LOOP_GUARD_UNREFRESHED_READ/);
+  assert.equal(guard.stateFor(agent).answerOnly, false);
+
+  // Denial 3: Escalates to hard answerOnly! (#148)
+  const d3 = guard.denyReason(agent, 'read_file', { path: fileA, v: 6 }, 'r-6');
+  assert.match(d3, /escalating to text-only mode/);
+  assert.equal(guard.stateFor(agent).answerOnly, true);
+  assert.ok(guard.metrics.targetDenials >= 3);
+});
+
+test('per-target quotas are per-turn and not reset on interleaved tool calls (#152)', () => {
+  const guard = new LoopGuardState({
+    targetQuotaGuard: true,
+    maxReadsPerTarget: 2,
+    adaptiveSteering: false,
+  });
+
+  const agent = 'agent-interleaved';
+  guard.beginTurn(agent, 1, false);
+
+  const fileA = 'docA.txt';
+  const fileB = 'docB.txt';
+
+  // Read A - 1st read
+  assert.equal(guard.denyReason(agent, 'read_file', { path: fileA }, 'ra-1'), undefined);
+  guard.commitCall(agent, 'ra-1');
+  guard.recordResult(agent, { callId: 'ra-1', result: { text: 'content A1' } });
+
+  // Read B - 1st read
+  assert.equal(guard.denyReason(agent, 'read_file', { path: fileB }, 'rb-1'), undefined);
+  guard.commitCall(agent, 'rb-1');
+  guard.recordResult(agent, { callId: 'rb-1', result: { text: 'content B1' } });
+
+  // Read A - 2nd read
+  assert.equal(guard.denyReason(agent, 'read_file', { path: fileA }, 'ra-2'), undefined);
+  guard.commitCall(agent, 'ra-2');
+  guard.recordResult(agent, { callId: 'ra-2', result: { text: 'content A2' } });
+
+  // Read B - 2nd read
+  assert.equal(guard.denyReason(agent, 'read_file', { path: fileB }, 'rb-2'), undefined);
+  guard.commitCall(agent, 'rb-2');
+  guard.recordResult(agent, { callId: 'rb-2', result: { text: 'content B2' } });
+
+  // Read A - 3rd read: MUST BE DENIED because maxReadsPerTarget = 2 (#152)
+  const denial = guard.denyReason(agent, 'read_file', { path: fileA }, 'ra-3');
+  assert.ok(denial, '3rd read on fileA must be denied by maxReadsPerTarget quota');
+  assert.match(denial, /LOOP_GUARD_TARGET_QUOTA/);
+  assert.match(denial, /Read quota \(2\) exceeded for target "docA\.txt"/);
 });
 
 test('successful modification resets unchanged read counter for that target', () => {
