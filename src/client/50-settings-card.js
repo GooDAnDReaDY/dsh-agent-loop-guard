@@ -31,8 +31,9 @@
         const loc = typeof snap === 'string' ? snap : (snap?.active || snap?.locale || snap?.id);
         return loc || (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en');
       };
-      const currentLang = String(getActiveLocale()).toLowerCase().startsWith('zh') ? 'zh' : 'en';
-      const dict = currentLang === 'zh' ? zh : en;
+      const locStr = String(getActiveLocale()).toLowerCase();
+      const currentLang = locStr.startsWith('zh') ? 'zh' : (locStr.startsWith('ru') ? 'ru' : 'en');
+      const dict = currentLang === 'zh' ? zh : (currentLang === 'ru' ? ru : en);
       const tt = (k, params) => {
         let str = (typeof t === 'function' ? t(k) : null) || dict[k] || en[k] || k;
         if (params && typeof params === 'object') {
@@ -140,7 +141,11 @@
           payloadBloatGuard: draft.payloadBloatGuard !== false, progressToolNames: names.length ? names : ['todo_write'],
           maxToolResultChars: Number.isFinite(Number(draft.maxToolResultChars)) && Number(draft.maxToolResultChars) >= 0 ? Number(draft.maxToolResultChars) : 65536,
           errorThrashingGuard: draft.errorThrashingGuard !== false, maxConsecutiveFailures: Number(draft.maxConsecutiveFailures) || 4,
-          adaptiveSteering: draft.adaptiveSteering !== false,
+          adaptiveSteering: draft.adaptiveSteering !== false, targetQuotaGuard: draft.targetQuotaGuard !== false,
+          maxUnchangedReadsPerTarget: Number(draft.maxUnchangedReadsPerTarget) || 3,
+          maxReadsPerTarget: Number(draft.maxReadsPerTarget) || 6,
+          maxEditsPerTarget: Number(draft.maxEditsPerTarget) || 8,
+          maxTargetAttempts: Number(draft.maxTargetAttempts) || 12,
         };
         const errs = [];
         for (const [k, v] of Object.entries(payload)) {
@@ -269,39 +274,7 @@
           React.createElement('button', { type: 'button', className: 'alg-btn-preset', onClick: () => applyPreset('autonomous') }, tt('presetAutonomous'))
         ),
 
-        React.createElement('div', {
-          style: { padding: '12px 14px', margin: '14px 0', background: 'color-mix(in srgb, var(--dsw-alias-label-primary) 2%, transparent)', borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)' }
-        },
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
-            React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, tt('telemetryTitle')),
-            React.createElement('div', { style: { display: 'flex', gap: 6 } },
-              telemetry.totalViolations > 0 && React.createElement('button', { className: 'alg-btn-ghost', onClick: onCopyDump }, tt('copyDump')),
-              (telemetry.totalViolations > 0 || (telemetry.incidents && telemetry.incidents.length > 0)) && React.createElement('button', { className: 'alg-btn-ghost', onClick: onResetTelemetry }, tt('resetStats'))
-            )
-          ),
-          React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
-            telemetry.error
-              ? React.createElement('span', { style: { color: 'var(--dsw-alias-state-error-primary)' } }, telemetry.error)
-              : (telemetry.totalViolations > 0 || telemetry.steeredCount > 0)
-                ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-                    React.createElement('div', { style: { display: 'flex', gap: 16 } },
-                      React.createElement('div', null, tt('totalBlocked') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-state-warn-primary)' } }, telemetry.totalViolations)),
-                      React.createElement('div', null, tt('steeredCount') + ': ', React.createElement('strong', { style: { color: 'var(--dsw-alias-brand-primary)' } }, telemetry.steeredCount || 0))
-                    ),
-                    telemetry.lastViolation && React.createElement('div', { style: { color: 'var(--dsw-alias-label-tertiary)' } },
-                      tt('lastViolation') + ': ' + telemetry.lastViolation.code + ' (' + telemetry.lastViolation.tool + ')'
-                    ),
-                    telemetry.incidents && telemetry.incidents.length > 0 && React.createElement('div', { style: { marginTop: 6, borderTop: '1px solid var(--dsw-alias-border-l2)', paddingTop: 6 } },
-                      React.createElement('div', { style: { fontWeight: 500, marginBottom: 4 } }, tt('incidentsTitle')),
-                      telemetry.incidents.slice(0, 4).map((inc, i) => React.createElement('div', { key: inc.id || i, className: 'alg-incident-row' },
-                        React.createElement('span', { style: { fontWeight: 500, color: inc.code === 'LOOP_GUARD_STEER' ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-state-error-primary)' } }, inc.code),
-                        React.createElement('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, inc.tool)
-                      ))
-                    )
-                  )
-                : React.createElement('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, tt('noViolations'))
-          )
-        ),
+        React.createElement(IncidentTelemetryPanel, { telemetry, tt, onCopyDump, onResetTelemetry }),
 
         field('maxToolAttemptsPerTurn', num('maxToolAttemptsPerTurn')),
         field('maxProgressToolCallsPerTurn', num('maxProgressToolCallsPerTurn')),
@@ -323,6 +296,11 @@
         check('errorThrashingGuard'),
         field('maxConsecutiveFailures', num('maxConsecutiveFailures')),
         check('adaptiveSteering'),
+        check('targetQuotaGuard'),
+        field('maxUnchangedReadsPerTarget', num('maxUnchangedReadsPerTarget')),
+        field('maxReadsPerTarget', num('maxReadsPerTarget')),
+        field('maxEditsPerTarget', num('maxEditsPerTarget')),
+        field('maxTargetAttempts', num('maxTargetAttempts')),
 
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, borderTop: '1px solid var(--dsw-alias-border-l2)', marginTop: 10 }
