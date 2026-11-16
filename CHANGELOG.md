@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1] - 2026-11-16
+
+### Added
+- **Target Quota Guard (#146, gh-3)**: Multi-layer protection against runaway per-file loop operations (such as repeated reads of unchanged files or endless edit-fail-retry loops on a single file).
+  - **Canonical Path & Target Key Extraction (`extractTargetKey`)**: Unifies and normalizes target parameters across diverse tool schemas (`path`, `file`, `filePath`, `target`, `filename`, `uri`, `dest`, `destination`, `src`, `source`, `params.path`, `params.file`), standardizing backslashes (`\` to `/`), stripping `file://`, trimming whitespace, and collapsing redundant relative path segments.
+  - **Unchanged Re-Read Protection (`maxUnchangedReadsPerTarget`)**: Tracks content fingerprints (`resultFingerprint`) across file reads per session turn. Rejects re-reads when the content has not changed and exceeds `maxUnchangedReadsPerTarget` (default: 3). Resets automatically when the target is successfully modified.
+  - **Per-Target Operation Quotas (`maxReadsPerTarget`, `maxEditsPerTarget`, `maxTargetAttempts`)**: Prevents excessive operations on any single target within a turn, independent of argument variations or interleaved tool calls.
+  - **Non-Latching Denial Architecture (`LOOP_GUARD_TARGET_QUOTA`, `LOOP_GUARD_UNREFRESHED_READ`)**: Target-specific violations reject *only* the offending tool call to that target, without latching the session into global `answerOnly` mode. The agent remains free to explore alternative files, call other tools, or execute cleanup commands.
+  - **UI & Presets Integration**: Added 5 user-facing fields to `Config` with `.volatile()` reactivity, native UI controls in DSH Web UI Settings Card with complete localization in English, Russian, and Chinese, and updated `Strict`, `Balanced`, and `Autonomous` presets.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added

@@ -44,11 +44,12 @@
 1. **进度感知型工具防循环（Progress-Aware Epochs）**：仅在工具调用未产生任何状态变化或新证据时判定为死循环。合法的有效迭代（如 `读` ➔ `写` ➔ `读` ➔ `写`）完全不受限制。
 2. **文本输出流防死循环（Assistant Output Guard）**：实时监测智能体流式输出，精准识别跨回合或跨步骤的单行及多行 Markdown 段落重复，安全中断生成而不破坏历史对话。
 3. **平滑降级至仅回答模式（Answer-Only Mode）**：触发死循环拦截时，向模型返回结构化 DSH 拒绝信息，强制要求模型输出文本向用户说明当前遇到的瓶颈。
-4. **工具重复报错拦截（Error Thrashing Guard）**：即使调用参数不同，也能归一化识别相同错误类型（`FS_ENOENT`、`EXIT_*`、`HTTP_*` 等）并阻断无效重试。
-5. **智能自纠正引导（Smart Steering）**：两阶段保护机制，在硬熔断前提供纠偏提示（`[LOOP_GUARD_STEER]`），引导模型自主改变策略。
-6. **拦截日志与一键诊断包**：环形遥测缓冲区记录最近事件及其调用链，并在设置面板提供一键复制诊断数据功能。
-7. **灵敏度预设（Presets）**：设置卡片提供 Strict / Balanced / Autonomous 一键预设切换。
-8. **日志隐私脱敏**：所有安全警告日志自动对 Token、密码、API Key 等敏感数据进行 `[redacted]` 掩码处理。
+4. **目标配额守卫与无变化重复读取保护（Target Quota Guard）**：防止智能体针对单个文件无限空转消耗 Token（如重复读取未变动文件 20+ 次）。自动规范化跨平台路径（`extractTargetKey`），检测无变化内容哈希（`LOOP_GUARD_UNREFRESHED_READ`），施加单目标调用配额（`LOOP_GUARD_TARGET_QUOTA`），并提供非全局锁定的点对点拒绝机制。
+5. **工具重复报错拦截（Error Thrashing Guard）**：即使调用参数不同，也能归一化识别相同错误类型（`FS_ENOENT`、`EXIT_*`、`HTTP_*` 等）并阻断无效重试。
+6. **智能自纠正引导（Smart Steering）**：两阶段保护机制，在硬熔断前提供纠偏提示（`[LOOP_GUARD_STEER]`），引导模型自主改变策略。
+7. **拦截日志与一键诊断包**：环形遥测缓冲区记录最近事件及其调用链，并在设置面板提供一键复制诊断数据功能。
+8. **灵敏度预设（Presets）**：设置卡片提供 Strict / Balanced / Autonomous 一键预设切换。
+9. **日志隐私脱敏**：所有安全警告日志自动对 Token、密码、API Key 等敏感数据进行 `[redacted]` 掩码处理。
 
 ---
 
