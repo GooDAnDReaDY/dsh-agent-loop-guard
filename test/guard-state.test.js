@@ -15,6 +15,7 @@ const config = {
   maxProgressToolCallsPerTurn: 16,
   maxCallsPerRepeatGroup: 5,
   blockExactDuplicates: false,
+  targetQuotaGuard: false,
 };
 
 function accept(state, agent, name, args, callId, result, extra = {}) {
