@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.2] - 2026-11-16
+
+### Added
+- **Target Quota Escalation Guard (#148)**: Target-specific non-latching denials now escalate to hard `answerOnly` text mode when an agent repeatedly ignores target quota denials (threshold: 3 consecutive denials on the same target, configurable via `maxTargetDenialsBeforeEscalation`). Prevents fail-open token burning loops while preserving non-latching flexibility for self-correcting models. Added `targetDenials` metric and updated steering warning text.
+- **Smart Steering Recovery for Error Thrashing (#149)**: Introduced single-attempt recovery grace (`thrashingRecoveryGrace`) following `LOOP_GUARD_ERROR_THRASHING` steering warnings. Allows the agent to execute an alternative tool call or diagnosis command to recover. Resets failure counters and steering state on successful tool execution, and escalates to hard violation only if recovery fails.
+- **Target Quota Engine Modular Extraction (#164)**: Extracted all target quota operations (`classifyToolAction`, `extractTargetKey`, `checkTargetQuota`, `recordTargetOutcome`, `handleTargetViolation`) into dedicated module `lib/target-quota-guard.js`, keeping all server modules strictly under line budget limits (< 450 lines in `guard-helpers.js`, < 595 lines in `guard-state.js`).
+
+### Fixed
+- **Accurate Tool Action Classification (#150)**: Fixed token-boundary classification in `classifyToolAction` using camelCase/separator tokenization and exact action dictionaries. Eliminates false positive substring matches (`format_code`, `perform_action`, `confirm_changes` no longer misclassified as `delete` via `rm`; `review_changes`, `preview_url`, `locate_symbol` no longer misclassified as `read` via `view`/`cat`).
+- **Path Case Preservation & Lexical Normalization (#151)**: Enhanced `extractTargetKey` with POSIX segment normalization (`..` and `.` resolution), symlink canonicalization via `fs.realpathSync`, Windows drive letter normalization (`c:`), and Linux case preservation (`README.md` and `readme.md` maintained as distinct targets on case-sensitive filesystems).
+- **Per-Target Per-Turn Quota Accumulation (#152)**: Fixed per-target quota counters (`maxReadsPerTarget`, `maxEditsPerTarget`, `maxTargetAttempts`) being erroneously wiped on unrelated global progress. Counters now consistently accumulate per turn across interleaved tool calls.
+- **Output Guard Orphaned Tool Call Cleanup (#155)**: Resolved silent output guard suppression caused by aborted or cancelled tool calls. `activeTools` reservations are now automatically cleared on turn boundaries (`turn/end`), step changes, and user interventions (`resetForUser`), with a hard upper bound of 64 active calls.
+- **Telemetry Data Redaction & LAN Security (#156)**: Hardened `/api/@goodandready/dsh-agent-loop-guard/telemetry` against sensitive data leaks over LAN. Replaced raw session identifiers with pseudonymous hashes (`maskSessionId`) and sanitized absolute filesystem paths in incident reasons to masked basenames (`redactTelemetryText`).
+
 ## [0.3.1] - 2026-11-16
 
 ### Added
