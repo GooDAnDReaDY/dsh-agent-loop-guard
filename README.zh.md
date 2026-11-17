@@ -129,7 +129,7 @@ graph TD
 
 ### 5. 原生 WebUI 设置卡片、实时防护遥测与一键平滑更新
 
-* **原生设置面板集成**：直接内嵌于 DSH Web 控制台「设置 ➔ 插件 ➔ 插件设置」卡片列表中（`settings.plugin.item`, order 95）。
+* **原生设置面板集成**：直接内嵌于 DSH Web 控制台「设置 ➔ 插件 ➔ 插件设置」卡片列表中（`plugins.item` / `plugins.row.config`）。
 * **对齐 DSH 设计规范**：完全基于 DSH 标准设计令牌变量（`--dsw-alias-*`）与无障碍标签绑定（`htmlFor`/`id`），搭配轻量级平滑展开 Chevron 图标，零外部重型 UI 库依赖。
 * **实时防护遥测看板**：在设置卡片中直观呈现当前运行时拦截的死循环总数（`LOOP_GUARD_DUPLICATE`, `LOOP_GUARD_REPEAT`, `LOOP_GUARD_LIMIT`, `LOOP_GUARD_OUTPUT`），支持通过 `/api/@goodandready/dsh-agent-loop-guard/telemetry` 安全端点一键重置计数。
 * **一键无缝在线更新**：卡片自动联动 npm 官方源检查最新版本，支持通过经过鉴权的本地环回 API（`/api/@goodandready/dsh-agent-loop-guard/update`）在后台安全完成版本升级。
@@ -186,6 +186,19 @@ dsh-agent-loop-guard:
 | `maxAssistantBlockChars` | `number` | `16384` | 捕获用于段落指纹比对的最大字符数。 |
 | `pseudoToolCallThreshold` | `number` | `3` | 伪工具调用空转拦截阈值（连续回合数，0 表示禁用）。 |
 | `pseudoToolCallPatterns` | `array` | `[]` | 自定义伪工具调用文本检测正则表达式或关键词列表。 |
+| `stopPatterns` | `array` | `[]` | 自定义用户停止指令检测正则表达式或关键词列表。 |
+| `oscillationDetection` | `boolean` | `true` | 是否启用多工具交替循环检测（如 A ➔ B ➔ A ➔ B 乒乓震荡）。 |
+| `maxOscillationRepeats` | `number` | `3` | 触发交替循环拦截的最大重复次数（2-4 步序列）。 |
+| `payloadBloatGuard` | `boolean` | `true` | 超大结果防膨胀保护（自动截断过大输出）。 |
+| `maxToolResultChars` | `number` | `65536` | 工具结果字符上限（超过此长度安全截断头部与尾部，0 表示禁用）。 |
+| `errorThrashingGuard` | `boolean` | `true` | 工具连续报错熔断拦截保护（防止报错死循环）。 |
+| `maxConsecutiveFailures` | `number` | `4` | 触发连续报错熔断的最大失败次数。 |
+| `adaptiveSteering` | `boolean` | `true` | 是否启用智能引导纠正（在硬性中断前给予纠正提示）。 |
+| `targetQuotaGuard` | `boolean` | `true` | 是否启用目标配额守卫（单文件/目标防死循环）。 |
+| `maxUnchangedReadsPerTarget` | `number` | `3` | 单文件内容无变化时的最大允许重复读取次数。 |
+| `maxReadsPerTarget` | `number` | `6` | 单回合针对单个文件的最大读取操作次数。 |
+| `maxEditsPerTarget` | `number` | `8` | 单回合针对单个文件的最大修改/写入操作次数。 |
+| `maxTargetAttempts` | `number` | `12` | 单回合针对单个文件的总操作次数上限。 |
 
 ---
 
