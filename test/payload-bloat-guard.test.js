@@ -44,6 +44,8 @@ test('truncateExecutionResult truncates result.value string', () => {
 
   const telemetry = state.getTelemetry();
   assert.equal(telemetry.byCode.LOOP_GUARD_PAYLOAD_TRUNCATED, 1);
+  assert.equal(telemetry.totalTruncations, 1);
+  assert.equal(telemetry.totalViolations, 0);
 });
 
 test('truncateExecutionResult truncates result.value object properties (e.g. stdout)', () => {
@@ -67,6 +69,8 @@ test('truncateExecutionResult truncates result.value object properties (e.g. std
 
   const telemetry = state.getTelemetry();
   assert.equal(telemetry.byCode.LOOP_GUARD_PAYLOAD_TRUNCATED, 1);
+  assert.equal(telemetry.totalTruncations, 1);
+  assert.equal(telemetry.totalViolations, 0);
 });
 
 test('truncateExecutionResult truncates result.content array text blocks', () => {

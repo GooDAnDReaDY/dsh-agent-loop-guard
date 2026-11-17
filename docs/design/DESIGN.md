@@ -127,9 +127,11 @@
   - Пользовательский интерфейс плагина обязан поддерживать **English (`en`)** и **Chinese (`zh`)**.
   - Все новые ключи для русского перевода регистрируются через issue в Gitea `goodandready/dsh-russian-lang` со сравнительной таблицей `Key | English | Chinese | Proposed Russian`.
   - Документация в репозитории ведётся на 3 языках (`README.md`, `README.ru.md`, `README.zh.md`).
-  - **Обоснование русскоязычных ключевых слов в `STOP_REQUEST_PATTERN`:** Регулярное выражение `STOP_REQUEST_PATTERN` в `lib/guard-state.js` включает кириллические лексемы (`стоп`, `остановись`, `прекрати`, `хватит`, `ответь`, `петля`). Это функциональный предикат безопасности входного потока (intent classifier), прерывающий инструментальные зацикливания при командах русскоязычных пользователей. Это правило классификации сигналов защиты runtime-уровня, а не UI-текст или локализованный вывод.
+  - **Обоснование русскоязычных ключевых слов в `STOP_REQUEST_PATTERN`:** Регулярное выражение стоп-слов включает лексемы `stop`, `halt`, `cancel` (и `стоп`, `остановись`, `прекрати`, `хватит`). Это функциональный предикат безопасности входного потока (intent classifier), прерывающий инструментальные зацикливания при командах русскоязычных пользователей. Это правило классификации сигналов защиты runtime-уровня, а не UI-текст или локализованный вывод.
+- **Native Locales:**
+  - Нативно поддерживаются и регистрируются словари `{ en, zh, ru }` в `src/client/20-locales.js` через `ctx.locale.register(NS, { en, zh, ru })` (#154).
 - **Don't:**
-  - **Запрещено** хардкодить русские строки в UI-компонентах, пользовательских сообщениях или объявлять русский словарь `ru` внутри `lib/client.js` и `lib/index.js` (перевод интерфейса обеспечивается плагином `dsh-russian-lang`).
+  - **Запрещено** хардкодить статические языковые строки вне словарей `src/client/20-locales.js`.
   - **Запрещено** удалять существующие описания фич в документации при релизе (только additive-обновление).
   - **Запрещено** менять вторую цифру версии $y$ без явной прямой команды пользователя.
 
@@ -144,3 +146,11 @@
 - **Unchanged Re-Read Protection**: `maxUnchangedReadsPerTarget` (default: 3) halts repetitive reads of unchanged file contents (`LOOP_GUARD_UNREFRESHED_READ`).
 - **Target Quota Limits**: `maxReadsPerTarget` (6), `maxEditsPerTarget` (8), `maxTargetAttempts` (12) prevent single-target thrashing without global `answerOnly` lockup.
 - **Non-Latching Denial**: Preserves caller ability to execute commands on other files or run cleanup tools.
+
+## 0.3.4 — Web UI Polish, Localization, Tooling & Docs (#153, #154, #157, #160, #161, #163)
+- **Windows Packaging & Portability (#153)**: Cross-platform npm execution in `scripts/pack-release.mjs` and dynamic home directory resolution in test suites.
+- **Native Localization Standards (#154)**: Full `{ en, zh, ru }` locale registration in client slots and dynamic summary localization in `PluginItem`.
+- **LAN Updater Authorization (#157)**: Support trusted update requests across private LAN subnets via core connection authentication.
+- **Documentation Parity (#160)**: Complete 28-field configuration tables across `README.md`, `README.ru.md`, `README.zh.md`, automated via `test/docs-consistency.test.js`.
+- **Bundle Parity Gate (#161)**: Automated test asserting strict byte-level parity between `src/client/*` and `lib/client.js`.
+- **UI Telemetry Precision (#163)**: Isolated payload truncations from loop prevention metrics, expanded incident post-mortem panel, and aria-live accessibility compliance.

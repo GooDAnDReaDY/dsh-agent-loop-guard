@@ -73,6 +73,30 @@ test('isTrustedUpdateRequest enforces x-dsh-plugin-update and loopback origins',
     },
     socket: { remoteAddress: '127.0.0.1' },
   }), false);
+
+  // LAN client authorized via core connection
+  const admittedConnCtx = { connection: { requestRejection: () => undefined } };
+  assert.equal(isTrustedUpdateRequest({
+    headers: {
+      'x-dsh-plugin-update': '1',
+      'sec-fetch-site': 'same-origin',
+      host: '192.168.1.111:3080',
+      origin: 'http://192.168.1.111:3080',
+    },
+    socket: { remoteAddress: '192.168.1.50' },
+  }, admittedConnCtx), true);
+
+  // LAN client rejected by core connection
+  const rejectedConnCtx = { connection: { requestRejection: () => 403 } };
+  assert.equal(isTrustedUpdateRequest({
+    headers: {
+      'x-dsh-plugin-update': '1',
+      'sec-fetch-site': 'same-origin',
+      host: '192.168.1.111:3080',
+      origin: 'http://192.168.1.111:3080',
+    },
+    socket: { remoteAddress: '192.168.1.50' },
+  }, rejectedConnCtx), false);
 });
 
 test('isTrustedTelemetryRequest enforces core connection auth, sec-fetch-site, and reset guard', () => {

@@ -106,7 +106,7 @@ When a loop is detected, the guard rejects the call with structured diagnostics 
 
 | Guard Code | Trigger Condition | Default Limit | Guard Action |
 |:---|:---|:---|:---|
-| `LOOP_GUARD_STOP` | User sent stop command (`stop`, `halt`, `cancel`, `стоп`, `остановись`, `прекрати`, `ответь`, `петля`) | Immediate | Rejects tool call; requires immediate text reply |
+| `LOOP_GUARD_STOP` | User sent stop command (`stop`, `halt`, `cancel`, `стоп`, `остановись`, `прекрати`) | Immediate | Rejects tool call; requires immediate text reply |
 | `LOOP_GUARD_DUPLICATE` | Identical call arguments with identical result to previous attempt | 1 retry | Blocks exact repeat; demands alternative approach |
 | `LOOP_GUARD_REPEAT` | Repeated calls within current group without state change | `maxCallsPerRepeatGroup` (5) | Prevents spinning on single tool |
 | `LOOP_GUARD_LIMIT` | Total non-productive tool attempts since last successful progress | `maxToolAttemptsPerTurn` (64) | Caps turn exploratory budget |
@@ -133,7 +133,7 @@ All loop guard warning logs automatically redact sensitive credentials:
 
 ### 5. Native WebUI Settings, Telemetry & One-Click Updater
 
-* **Integrated Settings Card**: Placed directly inside DSH Web UI under *Settings ➔ Plugins ➔ Plugin Settings* (`settings.plugin.item`, order 95).
+* **Integrated Settings Card**: Placed directly inside DSH Web UI under *Settings ➔ Plugins ➔ Plugin Settings* (`plugins.item` / `plugins.row.config`).
 * **Native DSH Design System**: Styled exclusively using standard DSH design variables (`--dsw-alias-*`), accessible `<label>`/`<input>` associations (`htmlFor`/`id`), and smooth chevron rotation without external UI dependencies.
 * **Live Protection Telemetry**: Real-time counters of blocked loops (`LOOP_GUARD_DUPLICATE`, `LOOP_GUARD_REPEAT`, `LOOP_GUARD_LIMIT`, `LOOP_GUARD_OUTPUT`) with instant statistics reset via `/api/@goodandready/dsh-agent-loop-guard/telemetry`.
 * **One-Click In-Place Updater**: Seamless version verification against the npm registry and one-click upgrades via authenticated loopback API (`/api/@goodandready/dsh-agent-loop-guard/update`).
@@ -190,6 +190,19 @@ dsh-agent-loop-guard:
 | `maxAssistantBlockChars` | `number` | `16384` | Maximum byte length captured for block fingerprinting. |
 | `pseudoToolCallThreshold` | `number` | `3` | Consecutive completed turns with pseudo tool calls and 0 real tools before cancellation (0 = disabled). |
 | `pseudoToolCallPatterns` | `array` | `[]` | Custom regex or string patterns for pseudo tool-call detection. |
+| `stopPatterns` | `array` | `[]` | Custom regex or string patterns for user stop commands. |
+| `oscillationDetection` | `boolean` | `true` | Enable detection of alternating ping-pong cycles across tools (e.g. A ➔ B ➔ A ➔ B). |
+| `maxOscillationRepeats` | `number` | `3` | Maximum cycles of 2-4 step oscillations permitted before loop block. |
+| `payloadBloatGuard` | `boolean` | `true` | Enable truncation and payload guard for oversized tool responses. |
+| `maxToolResultChars` | `number` | `65536` | Maximum allowed character length for tool results before truncating (0 = disabled). |
+| `errorThrashingGuard` | `boolean` | `true` | Enable fail-loop detection and fast-abort on repeated tool errors. |
+| `maxConsecutiveFailures` | `number` | `4` | Maximum consecutive tool errors before error thrashing block is enforced. |
+| `adaptiveSteering` | `boolean` | `true` | Enable smart steering to guide agents toward recovery before hard turn termination. |
+| `targetQuotaGuard` | `boolean` | `true` | Enable target-level per-file and per-resource quota protection. |
+| `maxUnchangedReadsPerTarget` | `number` | `3` | Maximum repeated reads of an unchanged file/resource target before refusal. |
+| `maxReadsPerTarget` | `number` | `6` | Maximum total read operations allowed on a single target per turn. |
+| `maxEditsPerTarget` | `number` | `8` | Maximum edit or write operations allowed on a single target per turn. |
+| `maxTargetAttempts` | `number` | `12` | Maximum total tool operations allowed across all actions for a single target per turn. |
 
 ---
 
