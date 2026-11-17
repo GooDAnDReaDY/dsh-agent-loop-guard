@@ -1,3 +1,11 @@
+    function resolveLocaleDict(ctx) {
+      const snap = typeof ctx?.locale?.getLocale === 'function' ? ctx.locale.getLocale()
+        : (typeof ctx?.locale?.getSnapshot === 'function' ? ctx.locale.getSnapshot() : null);
+      const loc = typeof snap === 'string' ? snap : (snap?.active || snap?.locale || snap?.id);
+      const locStr = String(loc || (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en')).toLowerCase();
+      return locStr.startsWith('zh') ? zh : (locStr.startsWith('ru') ? ru : en);
+    }
+
     function PluginCard({ ctx: _ctx, t, bare, ...props }) {
       const isBare = Boolean(bare || props?.view === 'page');
       const [expanded, setExpanded] = React.useState(false);
@@ -25,15 +33,7 @@
         if (typeof _ctx?.locale?.subscribe === 'function') return _ctx.locale.subscribe(() => setLocaleTick((c) => c + 1));
       }, []);
 
-      const getActiveLocale = () => {
-        const snap = typeof _ctx?.locale?.getLocale === 'function' ? _ctx.locale.getLocale()
-          : (typeof _ctx?.locale?.getSnapshot === 'function' ? _ctx.locale.getSnapshot() : null);
-        const loc = typeof snap === 'string' ? snap : (snap?.active || snap?.locale || snap?.id);
-        return loc || (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en');
-      };
-      const locStr = String(getActiveLocale()).toLowerCase();
-      const currentLang = locStr.startsWith('zh') ? 'zh' : (locStr.startsWith('ru') ? 'ru' : 'en');
-      const dict = currentLang === 'zh' ? zh : (currentLang === 'ru' ? ru : en);
+      const dict = resolveLocaleDict(_ctx);
       const tt = (k, params) => {
         let str = (typeof t === 'function' ? t(k) : null) || dict[k] || en[k] || k;
         if (params && typeof params === 'object') {
@@ -255,7 +255,7 @@
                 }
               }, updateState.checking ? tt('updateChecking') : (updateState.updateAvailable ? tt('updateAvailable', { v: updateState.latestVersion }) : (updateState.currentVersion ? tt('upToDate') : '—')))
             ),
-            updateState.error && React.createElement('span', { style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12 } }, updateState.error)
+            updateState.error && React.createElement('span', { role: 'alert', 'aria-live': 'assertive', style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12 } }, updateState.error)
           ),
           updateState.updateAvailable && (
             (updateState.isDesktop || !updateState.canAutoUpdate)
@@ -263,7 +263,7 @@
               : React.createElement('button', { className: 'alg-btn-updater', onClick: onTriggerUpdate, disabled: updateState.updating }, updateState.updating ? tt('updating') : tt('updateNow'))
           )
         ),
-        updateState.notice && React.createElement('div', {
+        updateState.notice && React.createElement('div', { role: 'status', 'aria-live': 'polite',
           style: { padding: '8px 12px', marginBottom: 12, background: 'color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent)', color: 'var(--dsw-alias-state-success-primary)', borderRadius: 6, fontSize: 12, border: '1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 20%, transparent)' }
         }, updateState.notice),
 
@@ -308,7 +308,7 @@
           React.createElement('button', {
             className: 'alg-btn-primary', onClick: onSave, disabled: saving || status !== 'ready',
           }, saving ? tt('saving') : tt('ready')),
-          msg && React.createElement('span', { style: { fontSize: 13, color: msg.includes(';') ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-state-success-primary)' } }, msg)
+          msg && React.createElement('span', { role: 'status', 'aria-live': 'polite', style: { fontSize: 13, color: msg.includes(';') ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-state-success-primary)' } }, msg)
         )
       );
 
@@ -318,7 +318,8 @@
 
     function PluginItem(props) {
       if (props && props.view === 'summary') {
-        return React.createElement('div', { style: { color: 'var(--dsw-alias-label-secondary)', fontSize: 13 } }, en.sub);
+        const d = resolveLocaleDict(props.ctx);
+        return React.createElement('div', { style: { color: 'var(--dsw-alias-label-secondary)', fontSize: 13 } }, d.sub || en.sub);
       }
       return React.createElement(PluginCard, { ...props, bare: Boolean(props && (props.bare || props.view === 'page')) });
     }

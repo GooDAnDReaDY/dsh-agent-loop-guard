@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -93,22 +94,24 @@ export const CANONICAL_THEME_TOKENS = new Set([
 ]);
 
 export function loadInstalledThemeTokens() {
+  const home = os.homedir();
   const possiblePaths = [
     () => require.resolve('@deepseek-ai/dsh-client-ui-theme/lib/client.js'),
-    () => '/home/vadim/.nvm/versions/node/v24.15.0/node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js',
-    () => '/home/vadim/.dsh/profiles/web/node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js',
+    () => path.join(home, '.dsh/profiles/web/node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js'),
   ];
   for (const resolveFn of possiblePaths) {
     try {
       const p = resolveFn();
-      if (fs.existsSync(p)) {
+      if (p && fs.existsSync(p)) {
         const themeContent = fs.readFileSync(p, 'utf8');
         const matches = themeContent.match(/--dsw-alias-[a-z0-9-]+/g);
         if (matches && matches.length > 0) {
           return new Set(matches);
         }
       }
-    } catch {}
+    } catch (_err) {
+      // ignore resolution failures
+    }
   }
   return CANONICAL_THEME_TOKENS;
 }

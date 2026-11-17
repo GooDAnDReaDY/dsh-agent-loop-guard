@@ -1,11 +1,9 @@
     exports.inject = ['slots', 'configForms', 'locale'];
     exports.apply = function apply(ctx) {
       if (typeof ctx.locale?.register === 'function') {
-        if (typeof ctx.effect === 'function') {
-          ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'dsh-agent-loop-guard: locale');
-        } else {
-          ctx.locale.register(NS, { en, zh });
-        }
+        const reg = () => ctx.locale.register(NS, { en, zh, ru });
+        if (typeof ctx.effect === 'function') ctx.effect(reg, 'dsh-agent-loop-guard: locale');
+        else reg();
       }
 
       function registerSlotWhenReady(slotName, registerFn) {
@@ -13,51 +11,29 @@
         if (typeof ctx.slots.inject === 'function') {
           try {
             ctx.slots.inject(slotName, () => {
-              try {
-                return registerFn();
-              } catch (err) {
-                console.warn('[' + NS + '] Error registering slot ' + slotName + ':', err);
-              }
+              try { return registerFn(); }
+              catch (err) { console.warn('[' + NS + '] Error registering slot ' + slotName + ':', err); }
             });
             return;
-          } catch (err) {
-            console.warn('[' + NS + '] Failed to inject slot ' + slotName + ':', err);
-          }
+          } catch (err) { console.warn('[' + NS + '] Failed to inject slot ' + slotName + ':', err); }
         }
         if (typeof ctx.slots.register === 'function') {
-          try {
-            registerFn();
-          } catch (err) {
-            console.warn('[' + NS + '] Failed direct registration for ' + slotName + ':', err);
-          }
+          try { registerFn(); }
+          catch (err) { console.warn('[' + NS + '] Failed direct registration for ' + slotName + ':', err); }
         }
       }
 
       registerSlotWhenReady('plugins.row.config', () =>
         ctx.slots.register(
-          {
-            name: 'plugins.row.config',
-            key: ROW_CONFIG_KEY,
-            order: 10,
-            locale: NS,
-            inject: () => ({ ctx }),
-          },
+          { name: 'plugins.row.config', key: ROW_CONFIG_KEY, order: 10, locale: NS, inject: () => ({ ctx }) },
           (props) => React.createElement(PluginItem, { ...props, ctx: (props && props.ctx) || ctx })
         )
       );
 
       registerSlotWhenReady('plugins.item', () =>
         ctx.slots.register(
-          {
-            name: 'plugins.item',
-            id: ROW_ID,
-            order: 10,
-            label: () => 'Agent Loop Guard',
-            locale: NS,
-            inject: () => ({ ctx }),
-          },
+          { name: 'plugins.item', id: ROW_ID, order: 10, label: () => 'Agent Loop Guard', locale: NS, inject: () => ({ ctx }) },
           (props) => React.createElement(PluginCard, { ...props, ctx: (props && props.ctx) || ctx })
         )
       );
-
     };

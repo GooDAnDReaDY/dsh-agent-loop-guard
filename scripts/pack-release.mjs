@@ -3,6 +3,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,16 +23,19 @@ if (buildRun.status !== 0) {
 }
 
 // Destination directory for persistent artifacts
+const defaultArtifactsDir = path.join(os.homedir(), '.dsh', 'artifacts');
 const targetDir = path.resolve(
-  process.env.DSH_ARTIFACTS_DIR || process.argv[2] || path.join(process.env.HOME || '/home/vadim', '.dsh', 'artifacts')
+  process.env.DSH_ARTIFACTS_DIR || process.argv[2] || defaultArtifactsDir
 );
 if (!existsSync(targetDir)) {
   mkdirSync(targetDir, { recursive: true });
 }
 
-// Pack into target directory
-const packRun = spawnSync('npm', ['pack', `--pack-destination=${targetDir}`], {
+// Pack into target directory (cross-platform npm invocation)
+const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const packRun = spawnSync(npmCmd, ['pack', `--pack-destination=${targetDir}`], {
   cwd: root,
+  shell: process.platform === 'win32',
   encoding: 'utf8',
 });
 if (packRun.status !== 0) {

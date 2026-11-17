@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.4] - 2026-11-17
+
+### Added
+- **Windows Packaging & Portability (#153)**: Cross-platform npm invocation in `scripts/pack-release.mjs` supporting Windows `npm.cmd` with shell execution, and dynamic home directory resolution via `os.homedir()` across test suites.
+- **Native Localization Standards (#154)**: Standardized `{ en, zh, ru }` client localization dictionaries registered in `ctx.locale.register(NS, { en, zh, ru })`, and localized summary text dynamically in `PluginItem`.
+- **Bundle Parity Gate (#161)**: Added automated test `test/bundle-parity.test.js` validating that `lib/client.js` is byte-for-byte identical to the concatenated `src/client/*.js` fragments and strictly under the 600 line limit.
+- **Documentation Parity Gate (#160)**: Synchronized all 28 `Config` schema settings across `README.md`, `README.ru.md`, and `README.zh.md`, enforced by automated test `test/docs-consistency.test.js`.
+
+### Fixed
+- **LAN Updater Authorization (#157)**: Fixed HTTP 403 when updating plugin over private LAN networks. Trusted LAN clients verified by DSH core connection service (`isPrivateLan` / `isLoopback`) are authorized to initiate updates.
+- **Telemetry Precision & Incident Journal (#163)**: Isolated payload truncations (`LOOP_GUARD_PAYLOAD_TRUNCATED`) into dedicated `totalTruncations` metric so output truncation does not inflate "Loops Prevented" (`totalViolations`). Expanded incident journal display to show up to 12 recent incidents with timestamps, and added `role="status"` / `aria-live="polite"` accessibility semantics.
+
 ## [0.3.3] - 2026-11-16
 
 ### Added
