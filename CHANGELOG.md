@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.5] - 2026-11-18
+
+### Fixed
+- **Idempotent Denial Reason Across Blocked Calls (GH-4)**: Fixed self-referential prefix nesting where subsequent blocked tool calls in `answerOnly` mode prepended `LOOP_GUARD_DUPLICATE: ` on each iteration, causing linear string accumulation (22 bytes per call). `state.stopReason` now stores the un-prefixed root reason on the first violation, ensuring bounded O(1) denial text and compact incident telemetry.
+
 ## [0.3.4] - 2026-11-17
 
 ### Added
