@@ -548,3 +548,39 @@ test('tools/result listener in plugin index passes (execution, result) to state 
   const decision2 = await guardedFn(exec2);
   assert.equal(decision2, undefined, 'Call 2 should be allowed after productive call 1');
 });
+
+test('denial reason does not self-nest across repeated blocked calls (#4)', () => {
+  const agent = { session: { id: 'repro-nest' } };
+  const state = new LoopGuardState({ adaptiveSteering: false, blockExactDuplicates: true });
+  state.beginTurn(agent, 1, false);
+
+  const args = { pattern: 'Foo', path: 'C:\\proj\\a.cpp' };
+  const ok = { content: [{ type: 'text', text: 'Found 1 match' }], isError: false };
+
+  const denialTexts = [];
+  for (let i = 1; i <= 30; i++) {
+    const r = state.denyReason(agent, 'grep', args, 'c' + i);
+    if (r !== undefined) {
+      denialTexts.push(r);
+    } else {
+      state.commitCall(agent, 'c' + i);
+      state.recordResult(agent, { agent, callId: 'c' + i, result: ok, isError: false });
+    }
+  }
+
+  assert.ok(denialTexts.length >= 25, 'Should have multiple denials in answerOnly mode');
+  const firstLen = denialTexts[0].length;
+  for (let i = 0; i < denialTexts.length; i++) {
+    assert.equal(
+      denialTexts[i].length,
+      firstLen,
+      `Denial #${i + 1} length (${denialTexts[i].length}) must equal first denial length (${firstLen})`
+    );
+    const occurrences = (denialTexts[i].match(/LOOP_GUARD_DUPLICATE/g) || []).length;
+    assert.equal(
+      occurrences,
+      1,
+      `Denial #${i + 1} must have exactly 1 occurrence of LOOP_GUARD_DUPLICATE, got ${occurrences}`
+    );
+  }
+});
