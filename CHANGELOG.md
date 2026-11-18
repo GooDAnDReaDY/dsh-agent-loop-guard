@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.6] - 2026-11-18
+
+### Fixed
+- **Telemetry Redaction Completeness (#156)**: `lastViolation.reason` is now redacted with `redactTelemetryText`, matching incident journal redaction; absolute target paths no longer leak through the telemetry endpoint.
+- **Localization Standard Compliance (#154)**: Removed the in-plugin `ru` dictionary and registration; the client registers exactly `{ en, zh }`. Russian UI is provided by `dsh-russian-lang`, with translation keys tracked there.
+- **Windows Test Portability (#161)**: Symlink assertion skips gracefully when Windows denies symlink creation (`EPERM`/`EACCES`), and case-sensitive target expectations are platform-aware.
+- **Documentation Sync (#160)**: `index.md` names the current release line; DESIGN uses canonical `--dsw-alias-brand-primary` and state tokens; docs-consistency test guards both.
+- **Line Budget Headroom (#164)**: Moved `decrementReservations` into `lib/target-quota-guard.js`, reducing `lib/guard-helpers.js` below 450 lines.
+- **Dead Import Cleanup (#165)**: Removed the remaining unused `GUARD_PRESETS` import from `lib/guard-state.js`.
+- **Windows Packaging Warning (#153)**: `pack-release.mjs` prefers `npm_execpath`, avoiding `shell:true` argument concatenation under `npm run`; `npm run pack:release` remains cross-platform.
+- **Preset Documentation (#159)**: Clarified that `Balanced` is a recommended, stricter-than-default profile; server/client parity remains enforced by `test/presets-parity.test.js`.
+
+### Documentation
+- Added `npm ci` and `npm audit --omit=dev --audit-level=high` to the verification workflow; the reviewed lockfile is part of the release gate.
+
 ## [0.3.5] - 2026-11-18
 
 ### Fixed

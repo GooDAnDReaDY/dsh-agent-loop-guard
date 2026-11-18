@@ -48,7 +48,7 @@ When autonomous AI coding agents encounter unexpected tool failures, ambiguous i
 5. **Error Thrashing Guard**: Halts runaway failure cycles sharing normalized error signatures (`FS_ENOENT`, `FS_EPERM`, `EXIT_*`, `HTTP_*`, etc.) even when parameters vary.
 6. **Smart Steering**: 2-stage defense injecting actionable self-correction directives (`[LOOP_GUARD_STEER]`) before escalating to hard cancellation.
 7. **Incident Journal & Diagnostic Dump**: Circular telemetry buffer tracking recent incidents with execution chains and 1-click dump copying in Web UI.
-8. **Sensitivity Presets**: 1-click preset selector (`Strict`, `Balanced`, `Autonomous Coding`) for immediate threshold configuration.
+8. **Sensitivity Presets**: 1-click preset selector (`Strict`, `Balanced`, `Autonomous Coding`) for immediate threshold configuration. `Balanced` is a recommended starting profile and is intentionally stricter than the schema defaults.
 9. **Zero Core Modifications**: Implemented purely through Cordis lifecycle hooks (`ctx.tools.guard`, `agent/pre-step`, `tools/execute`, `session/event`).
 
 ---
@@ -208,11 +208,13 @@ dsh-agent-loop-guard:
 
 ## 🧪 Testing & Verification
 
-Run the full automated test suite covering all loop denial paths, streaming output guards, and progress epochs:
+The reviewed `package-lock.json` pins the peer dependency graph used for audit and CI. Use `npm ci` for a clean, lockfile-respecting install:
 
 ```bash
+npm ci
 npm test
 npm run check
+npm audit --omit=dev --audit-level=high
 ```
 
 ---
